@@ -57,4 +57,6 @@ build/
 # Other people's header files:
 include/fftw/
 
-# 
+# Overview notes, which should eventually be moved to issue tracking / README
+# on GitHub
+code-overview.txt
