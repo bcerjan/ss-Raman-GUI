@@ -59,8 +59,11 @@ build/
 
 # Other people's header files:
 include/fftw/
-include/wavepond
+include/wavepond/
+include/gtk
 
+# Other people's def files:
+*.def
 
 # Overview notes, which should eventually be moved to issue tracking / README
 # on GitHub
