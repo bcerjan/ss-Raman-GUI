@@ -136,7 +136,7 @@
                 <property name="receives-default">True</property>
                 <property name="margin-start">1</property>
                 <property name="use-underline">True</property>
-                <signal name="clicked" handler="scan_button_clicked_cb" swapped="no"/>
+                <signal name="clicked" handler="scan_button_clicked_cb" object="spectrometer_scan" swapped="no"/>
               </object>
               <packing>
                 <property name="left-attach">1</property>
