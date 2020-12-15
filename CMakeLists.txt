@@ -21,31 +21,27 @@ SET(GCC_DYNAMIC_LINK_FLAGS "-Wl,--export-all-symbols")
 SET(MAIN_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
 INCLUDE_DIRECTORIES(
   ${GTK_INCLUDE_DIRS}
-  ${MAIN_INCLUDE_DIR}/fftw
+  #${MAIN_INCLUDE_DIR}/fftw
   ${MAIN_INCLUDE_DIR}/wavepond
-  ${MAIN_INCLUDE_DIR}/app
-  #${MAIN_INCLUDE_DIR}/gtk
+  #${MAIN_INCLUDE_DIR}/app
 )
 
 # Add libraries
 SET(MAIN_LIBRARY_DIR "${CMAKE_SOURCE_DIR}/lib")
-LINK_DIRECTORIES(
-  ${GTK_LIBRARY_DIRS}
-  ${MAIN_LIBRARY_DIR}/wavepond
-  #${MAIN_INCLUDE_DIR}/gtk
-)
+find_library(DAX_LIB dax22000_lib_DLL64 HINTS ${MAIN_LIBRARY_DIR}/wavepond)
+
 
 # Put our executable in the root directory:
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 # Add our executable:
-ADD_EXECUTABLE(app ./src/main.c)
+ADD_EXECUTABLE(app ${CMAKE_SOURCE_DIR}/src/main.c)
 
 # Specify to use our custom linker flags:
 TARGET_LINK_OPTIONS(app PUBLIC "${GCC_DYNAMIC_LINK_FLAGS}")
 
 # Link GTK to the target:
-TARGET_LINK_LIBRARIES(app ${GTK_LIBRARIES})
+TARGET_LINK_LIBRARIES(app PUBLIC ${GTK_LIBRARIES})
 
 # And waveform generator:
-TARGET_LINK_LIBRARIES(app dax22000_lib_DLL64)
+TARGET_LINK_LIBRARIES(app PUBLIC ${DAX_LIB})
