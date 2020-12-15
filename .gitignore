@@ -54,8 +54,13 @@ dkms.conf
 # CMake Build Directory:
 build/
 
+# Temporary glade files:
+*.glade~
+
 # Other people's header files:
 include/fftw/
+include/wavepond
+
 
 # Overview notes, which should eventually be moved to issue tracking / README
 # on GitHub
