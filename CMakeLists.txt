@@ -23,7 +23,7 @@ INCLUDE_DIRECTORIES(
   ${GTK_INCLUDE_DIRS}
   #${MAIN_INCLUDE_DIR}/fftw
   ${MAIN_INCLUDE_DIR}/wavepond
-  #${MAIN_INCLUDE_DIR}/app
+  ${MAIN_INCLUDE_DIR}/app
 )
 
 # Add libraries
