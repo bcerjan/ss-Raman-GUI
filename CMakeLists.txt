@@ -31,11 +31,17 @@ SET(MAIN_LIBRARY_DIR "${CMAKE_SOURCE_DIR}/lib")
 find_library(DAX_LIB dax22000_lib_DLL64 HINTS ${MAIN_LIBRARY_DIR}/wavepond)
 
 
+# Source Files:
+SET (COMMON_SRCS
+  ${CMAKE_SOURCE_DIR}/src/main.c
+  ${CMAKE_SOURCE_DIR}/src/waveform_gen.c
+)
+
 # Put our executable in the root directory:
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 # Add our executable:
-ADD_EXECUTABLE(app ${CMAKE_SOURCE_DIR}/src/main.c)
+ADD_EXECUTABLE(app ${COMMON_SRCS})
 
 # Specify to use our custom linker flags:
 TARGET_LINK_OPTIONS(app PUBLIC "${GCC_DYNAMIC_LINK_FLAGS}")
