@@ -33,6 +33,7 @@ typedef struct {
   GtkWidget *fft_data_check;
   GtkWidget *conv_data_check;
   GtkWidget *final_data_check;
+  GtkWidget *spectrometer_dialog;
 } userInputWidgets; // Don't love using a typedef here...
                     // Seems to be required to use g_slice_new()
 
@@ -73,6 +74,11 @@ void spectrometer_scan_clicked_cb()
   g_print("Spectrometer_scan clicked\n");
 }
 
+// Close error dialog when no spectrometers selected:
+void spectrometer_dialog_btn_clicked_cb(GtkWidget *dialog) {
+  gtk_widget_hide(dialog);
+}
+
 // We want to start or stop a real scan:
 void scan_button_clicked_cb(GtkButton *button,
                             userInputWidgets *uiWidgets)
@@ -81,6 +87,15 @@ void scan_button_clicked_cb(GtkButton *button,
 
 
   if (scan_running == 0) { // We are not currently running a scan
+    // Check this first to make sure this scan has a spectrometer selected
+    // Set up our spectrometer:
+    int spectrometerIndex;
+    spectrometerIndex = gtk_combo_box_get_active(GTK_COMBO_BOX(uiWidgets->spectrometer_comboBox)) - 1; // Offset by 1 to account for our note in the box
+    if (spectrometerIndex < 0) {
+      gtk_widget_show(uiWidgets->spectrometer_dialog);
+      return;
+    }
+
     scan_running = 1;
     char *text = "Stop Scan";
     gtk_button_set_label(button, text);
@@ -97,11 +112,11 @@ void scan_button_clicked_cb(GtkButton *button,
     int mod_freq, mod_freq_ind;
     mod_freq_ind = gtk_combo_box_get_active(GTK_COMBO_BOX(uiWidgets->mod_freq_comboBox));
     if (mod_freq_ind == 0) {
-      mod_freq = 100; // MHz
+      mod_freq = 100e6; // MHz
     } else if (mod_freq_ind == 1) {
-      mod_freq = 250; // MHz
+      mod_freq = 250e6; // MHz
     } else if (mod_freq_ind == 2) {
-      mod_freq = 500; // MHz
+      mod_freq = 500e6; // MHz
     }
 
     // Start the waveform generator:
@@ -112,14 +127,6 @@ void scan_button_clicked_cb(GtkButton *button,
     // Note that minimum integration time is 8 ms
     int integrationTime = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(uiWidgets->integration_time_entry));
 
-
-    // Set up our spectrometer:
-    int spectrometerIndex;
-    spectrometerIndex = gtk_combo_box_get_active(GTK_COMBO_BOX(uiWidgets->spectrometer_comboBox)) - 1; // Offset by 1 to account for our note in the box
-    if (spectrometerIndex < 0) {
-      // We didn't select a spectrometer...
-      // error dialog or something
-    }
 
     // Get number of measurements we want to do right now:
     int measurement_reps,i;
@@ -136,16 +143,20 @@ void scan_button_clicked_cb(GtkButton *button,
     fname = gtk_entry_get_text(GTK_ENTRY(uiWidgets->data_fname_entry));
 
     // Figure out which data they want:
-    struct dataCheckboxes *checkboxes = { 0 };
+    struct dataCheckboxes checkboxes, *checkPtr;
 
-    checkboxes->raw_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->raw_data_check));
-    checkboxes->fft_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->fft_data_check));
-    checkboxes->conv_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->conv_data_check));
-    checkboxes->final_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->final_data_check));
+    checkboxes.raw_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->raw_data_check));
+    checkboxes.fft_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->fft_data_check));
+    checkboxes.conv_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->conv_data_check));
+    checkboxes.final_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->final_data_check));
 
+    checkPtr = &checkboxes;
 
-    //output_data(data_dir, fname, checkboxes);
-    g_free(data_dir);
+    //output_data(data_dir, fname, checkPtr);
+    //g_free(data_dir);
+
+    // Stop the waveform generator:
+    //stop_wvfm_gen();
 
   } else {
     scan_running = 0;
@@ -208,6 +219,7 @@ int main(int    argc,
   uiWidgets->fft_data_check = GTK_WIDGET(gtk_builder_get_object(builder, "fft_data_save"));
   uiWidgets->conv_data_check = GTK_WIDGET(gtk_builder_get_object(builder, "conv_data_save"));
   uiWidgets->final_data_check = GTK_WIDGET(gtk_builder_get_object(builder, "final_data_save"));
+  uiWidgets->spectrometer_dialog = GTK_WIDGET(gtk_builder_get_object(builder, "spectrometer_dialog"));
 
   // Hook up the signals from the UI to their associated functions, and
   // pass our struct of data to be returned as "userdata" for when we need to
