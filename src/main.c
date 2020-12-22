@@ -112,11 +112,11 @@ void scan_button_clicked_cb(GtkButton *button,
     int mod_freq, mod_freq_ind;
     mod_freq_ind = gtk_combo_box_get_active(GTK_COMBO_BOX(uiWidgets->mod_freq_comboBox));
     if (mod_freq_ind == 0) {
-      mod_freq = 100e6; // MHz
+      mod_freq = 100e6; // Hz
     } else if (mod_freq_ind == 1) {
-      mod_freq = 250e6; // MHz
+      mod_freq = 250e6; // Hz
     } else if (mod_freq_ind == 2) {
-      mod_freq = 500e6; // MHz
+      mod_freq = 500e6; // Hz
     }
 
     // Start the waveform generator:
