@@ -32,16 +32,29 @@ find_library(DAX_LIB dax22000_lib_DLL64 HINTS ${MAIN_LIBRARY_DIR}/wavepond)
 
 
 # Source Files:
+SET(MAIN_SRC_DIR "${CMAKE_SOURCE_DIR}/src")
+
 SET (COMMON_SRCS
-  ${CMAKE_SOURCE_DIR}/src/main.c
-  ${CMAKE_SOURCE_DIR}/src/waveform_gen.c
+  ${MAIN_SRC_DIR}/main.c
+  ${MAIN_SRC_DIR}/waveform_gen.c
+)
+
+SET (GENERATOR_SRCS
+  ${MAIN_SRC_DIR}/pn_code_generator.c
+)
+
+ADD_EXECUTABLE(pn_code_generator ${GENERATOR_SRCS})
+
+ADD_CUSTOM_COMMAND(
+  OUTPUT pn_code.h
+  COMMAND pn_code_generator
 )
 
 # Put our executable in the root directory:
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 # Add our executable:
-ADD_EXECUTABLE(app ${COMMON_SRCS})
+ADD_EXECUTABLE(app ${COMMON_SRCS} pn_code.h)
 
 # Specify to use our custom linker flags:
 TARGET_LINK_OPTIONS(app PUBLIC "${GCC_DYNAMIC_LINK_FLAGS}")
