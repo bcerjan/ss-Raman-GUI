@@ -3,7 +3,7 @@
 #include <stdbool.h>
 
 // Header file containing pre-defined waveform data
-//#include "pn_code.h"
+#include "pn_code.h"
 
 // Header files for the waveform generator ("wavepond")
 #include "dax22000_lib_DLL64.h"
@@ -21,36 +21,39 @@ void start_wvfm_gen(int pn_bit_len, int mod_freq)
 
   WORD wvfm_array[1024] = {0}; // Array to hold our waveform values, may need to make larger buffer if we need to alter our clock rate
 
+  // LIKELY NEED TO ADJUST THIS OR ADD A 0 POSITION OFFSET (OR BOTH)
+  WORD offset = 2047; // Offset from "0" state to "1" state
+
   // Check if we need to have longer "bits" and a fictitious clock rate, or if
   // we can get away with setting the clock rate to be the actual user-desired
   // rate and just going from high to low (this is what is currently implemented)
 
   // Load our waveform array from the header file here:
-  /*if (pn_bit_len == 32) {
+  if (pn_bit_len == 32) {
     for (i = 0; i < pn_bit_len; i++) {
-      wvfm_array[i] = pn_32_bit[i];
+      wvfm_array[i] = pn_32_bit[i] * offset;
     }
   } else if (pn_bit_len == 64) {
     for (i = 0; i < pn_bit_len; i++) {
-      wvfm_array[i] = pn_64_bit[i];
+      wvfm_array[i] = pn_64_bit[i] * offset;
     }
   } else if (pn_bit_len == 128) {
     for (i = 0; i < pn_bit_len; i++) {
-      wvfm_array[i] = pn_128_bit[i];
+      wvfm_array[i] = pn_128_bit[i] * offset;
     }
   } else if (pn_bit_len == 256) {
     for (i = 0; i < pn_bit_len; i++) {
-      wvfm_array[i] = pn_256_bit[i];
+      wvfm_array[i] = pn_256_bit[i] * offset;
     }
   } else if (pn_bit_len == 512) {
     for (i = 0; i < pn_bit_len; i++) {
-      wvfm_array[i] = pn_512_bit[i];
+      wvfm_array[i] = pn_512_bit[i] * offset;
     }
   } else if (pn_bit_len == 1024) {
     for (i = 0; i < pn_bit_len; i++) {
-      wvfm_array[i] = pn_1024_bit[i];
+      wvfm_array[i] = pn_1024_bit[i] * offset;
     }
-  } */
+  }
 
   // Initialize the driver and controller, and set clock rate:
   x = DAx22000_Open(CardNum);
