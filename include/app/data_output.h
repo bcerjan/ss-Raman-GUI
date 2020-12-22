@@ -1,8 +1,6 @@
 #ifndef DATA_OUTPUT
 #define DATA_OUTPUT
 
-#include <gtk/gtk.h>
-
 // Note: check the state using: if (dataCheckboxes->raw_data) {}
 struct dataCheckboxes {
   int raw_data;
