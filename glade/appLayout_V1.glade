@@ -4,6 +4,7 @@
   <requires lib="gtk+" version="3.24"/>
   <object class="GtkFileChooserDialog" id="filename_dialog">
     <property name="can-focus">False</property>
+    <property name="no-show-all">True</property>
     <property name="type-hint">dialog</property>
     <property name="action">select-folder</property>
     <child internal-child="vbox">
@@ -34,26 +35,21 @@
       </object>
     </child>
   </object>
-  <object class="GtkDialog" id="function_generator_dialog">
+  <object class="GtkMessageDialog" id="function_generator_dialog">
     <property name="can-focus">False</property>
-    <property name="halign">center</property>
-    <property name="type">popup</property>
-    <property name="title" translatable="yes">Function Generator Missing</property>
-    <property name="modal">True</property>
-    <property name="window-position">center</property>
+    <property name="title" translatable="yes">Connect Waveform Generator</property>
+    <property name="icon-name">printer</property>
     <property name="type-hint">dialog</property>
+    <property name="text" translatable="yes">The function generator was not detected, please connect it and press "Re-Scan" or quite the application.</property>
     <child internal-child="vbox">
       <object class="GtkBox">
         <property name="can-focus">False</property>
-        <property name="margin-start">2</property>
-        <property name="margin-end">2</property>
-        <property name="margin-top">2</property>
-        <property name="margin-bottom">2</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox">
             <property name="can-focus">False</property>
+            <property name="homogeneous">True</property>
             <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="function_generator_dialog_btn">
@@ -90,20 +86,6 @@
             <property name="position">0</property>
           </packing>
         </child>
-        <child>
-          <object class="GtkLabel">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="halign">center</property>
-            <property name="valign">center</property>
-            <property name="label" translatable="yes">The function generator was not found, please connect it and press "Re-Scan" or quit the application.</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
       </object>
     </child>
   </object>
@@ -123,6 +105,8 @@
   </object>
   <object class="GtkWindow" id="window_main">
     <property name="can-focus">False</property>
+    <property name="title" translatable="yes">Spread-Spectrum Raman Measurements</property>
+    <property name="icon-name">application-x-firmware</property>
     <signal name="destroy" handler="on_window_main_destroy" swapped="no"/>
     <child>
       <object class="GtkBox">
@@ -621,5 +605,55 @@
         </child>
       </object>
     </child>
+  </object>
+  <object class="GtkMessageDialog" id="spectrometer_dialog">
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">Select a Spectrometer</property>
+    <property name="modal">True</property>
+    <property name="default-width">400</property>
+    <property name="default-height">90</property>
+    <property name="icon-name">image-x-generic</property>
+    <property name="type-hint">dialog</property>
+    <property name="text" translatable="yes">Please select a spectrometer before running a scan. Make sure they are connect to the computer and powered on.</property>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="homogeneous">True</property>
+            <property name="layout-style">end</property>
+            <child>
+              <object class="GtkButton" id="spectrometer_dialog_btn">
+                <property name="label" translatable="yes">Will Do</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="margin-start">3</property>
+                <property name="margin-end">3</property>
+                <property name="margin-top">3</property>
+                <property name="margin-bottom">3</property>
+                <signal name="clicked" handler="spectrometer_dialog_btn_clicked_cb" object="spectrometer_dialog" swapped="yes"/>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkTextBuffer" id="spectrometer_dialog_text">
+    <property name="text" translatable="yes">Please select a spectrometer before running a scan. Make sure they are connected to the computer and powered on.</property>
   </object>
 </interface>
