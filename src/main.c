@@ -12,6 +12,9 @@
 // Header files for Ocean Inisght Spectrometer
 //#include "API INFO HERE"
 
+// Header from FFTW:
+#include "fftw3.h"
+
 // Headers from this project:
 #include "data_output.h"
 #include "waveform_gen.h"
@@ -131,8 +134,6 @@ void scan_button_clicked_cb(GtkButton *button,
     // Get number of measurements we want to do right now:
     int measurement_reps,i;
     measurement_reps = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(uiWidgets->num_meas_entry));
-    // Begin the acquisition
-    //start_spec_acq(spectrometerIndex, integrationTime); // Update progressBar in here
 
 
     // Prepare to output our data:
@@ -143,17 +144,26 @@ void scan_button_clicked_cb(GtkButton *button,
     fname = gtk_entry_get_text(GTK_ENTRY(uiWidgets->data_fname_entry));
 
     // Figure out which data they want:
-    struct dataCheckboxes checkboxes, *checkPtr;
+    struct dataOuputOpts outputOpts, *outputPtr;
 
-    checkboxes.raw_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->raw_data_check));
-    checkboxes.fft_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->fft_data_check));
-    checkboxes.conv_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->conv_data_check));
-    checkboxes.final_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->final_data_check));
+    outputOpts.raw_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->raw_data_check));
+    outputOpts.fft_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->fft_data_check));
+    outputOpts.conv_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->conv_data_check));
+    outputOpts.final_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->final_data_check));
+    outputOpts.fname = fname;
+    outputOpts.data_dir = data_dir;
 
-    checkPtr = &checkboxes;
-
-    //output_data(data_dir, fname, checkPtr);
+    outputPtr = &outputOpts;
     //g_free(data_dir);
+    //g_free(fname);
+
+    // Begin the acquisition
+    // This does many things -- it records data (updating the progress bar),
+    // processes that data, and outputs it (at the appropriate step(s)) as
+    // requested.
+    //start_spec_acq(spectrometerIndex, integrationTime); // Update progressBar in here
+
+
 
     // Stop the waveform generator:
     //stop_wvfm_gen();
@@ -186,7 +196,7 @@ int main(int    argc,
   userInputWidgets *uiWidgets = g_slice_new(userInputWidgets);
 
   // Load custom CSS:
-  GFile  *cssFile = g_file_new_for_path("css/progressBar.css");
+  GFile  *cssFile = g_file_new_for_path("./css/progressBar.css");
   GtkCssProvider *cssProvider = gtk_css_provider_new();
   gtk_css_provider_load_from_file(cssProvider, cssFile, NULL);
   gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
@@ -198,7 +208,7 @@ int main(int    argc,
   g_object_unref(cssProvider);
 
   // get UI from our .glade file:
-  builder = gtk_builder_new_from_file("glade/appLayout_V1.glade");
+  builder = gtk_builder_new_from_file("./glade/appLayout_V1.glade");
 
   // Apply UI to our window
   window = GTK_WIDGET(gtk_builder_get_object(builder, "window_main"));
@@ -233,7 +243,7 @@ int main(int    argc,
   DWORD NumCards = 0;
   NumCards = DAx22000_GetNumCards();
   printf("Number of Cards = %d\n", NumCards);
-  /*if (NumCards != 0) {
+  /*if (NumCards == 0) {
     gtk_widget_show(dialog);
   }*/
 
