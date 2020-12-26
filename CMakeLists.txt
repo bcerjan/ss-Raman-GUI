@@ -7,9 +7,6 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.19)
 FIND_PACKAGE(PkgConfig REQUIRED)
 PKG_CHECK_MODULES(GTK REQUIRED gtk+-3.0)
 
-# Now tell CMake to use said libraries and whatnot:
-#INCLUDE_DIRECTORIES(${GTK_INCLUDE_DIRS})
-#LINK_DIRECTORIES(${GTK_LIBRARY_DIRS})
 
 # Add additional flags:
 ADD_DEFINITIONS(${GTK_CFLAGS_OTHER})
@@ -21,7 +18,7 @@ SET(GCC_DYNAMIC_LINK_FLAGS "-Wl,--export-all-symbols")
 SET(MAIN_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
 INCLUDE_DIRECTORIES(
   ${GTK_INCLUDE_DIRS}
-  #${MAIN_INCLUDE_DIR}/fftw
+  ${MAIN_INCLUDE_DIR}/fftw
   ${MAIN_INCLUDE_DIR}/wavepond
   ${MAIN_INCLUDE_DIR}/app
 )
@@ -39,28 +36,23 @@ SET (COMMON_SRCS
   ${MAIN_SRC_DIR}/waveform_gen.c
 )
 
-SET (GENERATOR_SRCS
-  ${MAIN_SRC_DIR}/pn_code_generator.c
-)
-
-ADD_EXECUTABLE(pn_code_generator ${GENERATOR_SRCS})
-
-ADD_CUSTOM_COMMAND(
-  OUTPUT pn_code.h
-  COMMAND pn_code_generator
-)
+# Subdirectory for generator:
+ADD_SUBDIRECTORY(${CMAKE_SOURCE_DIR}/generators)
 
 # Put our executable in the root directory:
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
 # Add our executable:
 ADD_EXECUTABLE(app ${COMMON_SRCS} pn_code.h)
 
 # Specify to use our custom linker flags:
-TARGET_LINK_OPTIONS(app PUBLIC "${GCC_DYNAMIC_LINK_FLAGS}")
+TARGET_LINK_OPTIONS(app PUBLIC ${GCC_DYNAMIC_LINK_FLAGS})
 
 # Link GTK to the target:
 TARGET_LINK_LIBRARIES(app PUBLIC ${GTK_LIBRARIES})
 
 # And waveform generator:
 TARGET_LINK_LIBRARIES(app PUBLIC ${DAX_LIB})
+
+# Add math library:
+TARGET_LINK_LIBRARIES(app PUBLIC m)
