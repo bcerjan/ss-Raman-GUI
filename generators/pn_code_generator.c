@@ -114,7 +114,9 @@ int main() {
   int output[1024] = {0};
   output[0] = seed & 1; // set to our seed value
 
-  char headerFname[100] = "../include/app/pn_code.h";
+  //char headerFname[100] = "../include/app/pn_code.h";
+  char headerFname[100] = "pn_code.h"; // This is to satisfy CMake as it sort of hides this header...
+
   FILE *headerPtr;
   headerPtr = fopen(headerFname,"w");
 
