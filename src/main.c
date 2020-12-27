@@ -22,6 +22,7 @@
 // Variable to track if we're currently running a scan or not:
 static int scan_running = 0;
 static GThread *worker_tid;
+static struct dataAcqParams *worker_params;
 
 // Struct to hold all of the widgets when we start or stop a scan
 typedef struct {
@@ -88,9 +89,10 @@ void scan_button_clicked_cb(GtkButton *button,
                             userInputWidgets *uiWidgets)
 {
   g_print("scan_button clicked\n");
+  const char *cur_text = gtk_button_get_label(button);
+  g_print(cur_text);
 
-
-  if (scan_running == 0) { // We are not currently running a scan
+  if (g_strcmp0("Start Scan", cur_text) == 0) { // We are not currently running a scan
     // Check this first to make sure this scan has a spectrometer selected
     // Set up our spectrometer:
     int spectrometerIndex;
@@ -100,9 +102,10 @@ void scan_button_clicked_cb(GtkButton *button,
       return;
     }*/
 
-    scan_running = 1;
-    char *text = "Stop Scan";
+
+    const char *text = "Stop Scan";
     gtk_button_set_label(button, text);
+    g_free(text);
 
     // Prepare to start wafeform generation:x
     int pn_bit_len;
@@ -136,15 +139,14 @@ void scan_button_clicked_cb(GtkButton *button,
     int measurement_reps,i;
     measurement_reps = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(uiWidgets->num_meas_entry));
 
-
-    // Prepare to output our data:
+    // Filename and directory for data output
     char *data_dir;
     data_dir = gtk_file_chooser_get_uri(GTK_FILE_CHOOSER(uiWidgets->data_dir_entry));
 
     const char *fname;
     fname = gtk_entry_get_text(GTK_ENTRY(uiWidgets->data_fname_entry));
 
-    // Figure out which data they want:
+    // Prepare struct of output options (which data, where it goes)
     struct dataOuputOpts *outputPtr = g_malloc(sizeof(*outputPtr));
 
     outputPtr->raw_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->raw_data_check));
@@ -154,18 +156,18 @@ void scan_button_clicked_cb(GtkButton *button,
     outputPtr->fname = fname;
     outputPtr->data_dir = data_dir;
 
-    //outputPtr = &outputOpts;
-    //g_free(data_dir);
-    //g_free(fname);
+    g_free(data_dir);
+    g_free(fname);
 
+    // Now we're preparing to call our worker thread to take a measurement
     GtkWidget *progressBar = uiWidgets->progressBar;
+
     // Set our bar to 0%
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressBar), 0.0);
-    // Begin the acquisition
-    // This does many things -- it records data (updating the progress bar),
-    // processes that data, and outputs it (at the appropriate step(s)) as
-    // requested.
-    int timeoutInterval = 100;
+
+    // Stuff a struct full of the information needed to take the requested measurement,
+    // as well as output the data
+    int timeoutInterval = 100; // ms
     struct dataAcqParams *params = g_malloc(sizeof(*params));
 
     params->spectrometerIndex = spectrometerIndex;
@@ -177,30 +179,21 @@ void scan_button_clicked_cb(GtkButton *button,
     params->timeoutInterval = timeoutInterval;
     params->self = params;
 
-gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(params->progressBar), 0.33);
-    GThread *tid;
-    //int timeoutID;
-    printf("Original pointer location: %p\n", (void *) progressBar);
-    //pthread_t tid;
-    // These lines are to ensure that our worker thread is "joinable" --
-    // this means that we can specify that we want to wait for it before
-    // letting the main thread move on.
-    /*pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);*/
-    // end joinable lines
+    //params->spectrometerWrapper = uiWidgets->spectrometerWrapper;
 
-    /*int rc;
-    void *status;*/
+    GThread *tid;
 
     // Start updating the progress bar:
     params->timeoutID = gdk_threads_add_timeout(timeoutInterval, progressBar_timeout_cb,
                                         params);
-    //params->timeoutID = g_timeout_add(timeoutInterval, progressBar_timeout_cb,
-    //                                            params);
 
-    //params->timeoutID = timeoutID;
-    //rc = pthread_create(&tid, &attr, start_data_acq, (void *) &params); // Update progressBar in here
+    // Store pointer to params so we can free it later if we need to:
+    worker_params = params;
+
+    // Begin the acquisition
+    // This does many things -- it records data (updating the progress bar),
+    // processes that data, and outputs it (at the appropriate step(s)) as
+    // requested.
     tid = g_thread_new("acquire", start_data_acq, params);
     worker_tid = tid; // Store this in a global in case we need to cancel it later
     g_print("After thread creation...\n");
@@ -208,26 +201,17 @@ gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(params->progressBar), 0.33);
     // Stop the waveform generator:
     //stop_wvfm_gen();
 
-    // Ensure that our worker thread has finished:
-    //pthread_attr_destroy(&attr); // Free memory
-    //rc = pthread_join(tid, &status);
-    //g_print("After re-joining...\n");
-//g_usleep(3e6);
-    // Reset our global variable and change the text back:
-//    scan_running = 0;
-//    text = "Start Scan";
-//    gtk_button_set_label(button, text);
-    //g_free(params);
-
-    //g_source_remove(params->timeoutID);
   } else {
-    scan_running = 0;
-    char *text = "Start Scan";
+    //scan_running = 0;
+    const char *text = "Start Scan";
     gtk_button_set_label(button, text);
+    g_free(text);
     //stop_wvfm_gen();
-    //stop_spec_acq();
+    stop_data_acq(worker_params);
     //clear_data(); // If needed
   }
+
+  g_free(cur_text);
 }
 
 // Someone wants to see the help documentation
@@ -303,6 +287,7 @@ int main(int    argc,
   // Scan for spectrometer(s)
   /*
   Wrapper wrapper; // wrapper for spectrometer
+  uiWidgets->spectrometerWrapper = wrapper; // We need to pass this everywhere. We'll need to adjust the struct when that makes sense.
   int numberOfSpectrometers,i;
 
   numberOfSpectrometers = wrapper.openAllSpectrometers();
