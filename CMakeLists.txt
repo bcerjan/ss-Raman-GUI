@@ -7,12 +7,15 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.19)
 FIND_PACKAGE(PkgConfig REQUIRED)
 PKG_CHECK_MODULES(GTK REQUIRED gtk+-3.0)
 
-
 # Add additional flags:
 ADD_DEFINITIONS(${GTK_CFLAGS_OTHER})
 
 # equivalent of -rdyanmic, but that doesn't exist here:
 SET(GCC_DYNAMIC_LINK_FLAGS "-Wl,--export-all-symbols")
+
+# Need to find threading library and apply flags:
+SET(THREADS_PREFER_PTHREAD_FLAG ON)
+FIND_PACKAGE(Threads REQUIRED)
 
 # Include header files from include directories
 SET(MAIN_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
@@ -34,6 +37,7 @@ SET(MAIN_SRC_DIR "${CMAKE_SOURCE_DIR}/src")
 SET (COMMON_SRCS
   ${MAIN_SRC_DIR}/main.c
   ${MAIN_SRC_DIR}/waveform_gen.c
+  ${MAIN_SRC_DIR}/acquire_data.c
 )
 
 # Subdirectory for generator:
@@ -56,3 +60,6 @@ TARGET_LINK_LIBRARIES(app PUBLIC ${DAX_LIB})
 
 # Add math library:
 TARGET_LINK_LIBRARIES(app PUBLIC m)
+
+# Add pthreading:
+TARGET_LINK_LIBRARIES(app PRIVATE Threads::Threads)
