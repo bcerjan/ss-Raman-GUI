@@ -6,22 +6,22 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+//#include <pthread.h>
+
 // Header files for the waveform generator ("wavepond")
 #include "dax22000_lib_DLL64.h"
 
 // Header files for Ocean Inisght Spectrometer
 //#include "API INFO HERE"
 
-// Header from FFTW:
-#include "fftw3.h"
-
 // Headers from this project:
 #include "data_output.h"
 #include "waveform_gen.h"
+#include "acquire_data.h"
 
 // Variable to track if we're currently running a scan or not:
 static int scan_running = 0;
-
+static GThread *worker_tid;
 
 // Struct to hold all of the widgets when we start or stop a scan
 typedef struct {
@@ -37,6 +37,7 @@ typedef struct {
   GtkWidget *conv_data_check;
   GtkWidget *final_data_check;
   GtkWidget *spectrometer_dialog;
+  GtkWidget *progressBar;
 } userInputWidgets; // Don't love using a typedef here...
                     // Seems to be required to use g_slice_new()
 
@@ -94,10 +95,10 @@ void scan_button_clicked_cb(GtkButton *button,
     // Set up our spectrometer:
     int spectrometerIndex;
     spectrometerIndex = gtk_combo_box_get_active(GTK_COMBO_BOX(uiWidgets->spectrometer_comboBox)) - 1; // Offset by 1 to account for our note in the box
-    if (spectrometerIndex < 0) {
+    /*if (spectrometerIndex < 0) {
       gtk_widget_show(uiWidgets->spectrometer_dialog);
       return;
-    }
+    }*/
 
     scan_running = 1;
     char *text = "Stop Scan";
@@ -128,7 +129,7 @@ void scan_button_clicked_cb(GtkButton *button,
     //printf("Number of pn_repetitions = %d\n", pn_repetitions);
 
     // Note that minimum integration time is 8 ms
-    int integrationTime = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(uiWidgets->integration_time_entry));
+    int integrationTime = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(uiWidgets->integration_time_entry)); // milliseconds
 
 
     // Get number of measurements we want to do right now:
@@ -144,30 +145,81 @@ void scan_button_clicked_cb(GtkButton *button,
     fname = gtk_entry_get_text(GTK_ENTRY(uiWidgets->data_fname_entry));
 
     // Figure out which data they want:
-    struct dataOuputOpts outputOpts, *outputPtr;
+    struct dataOuputOpts *outputPtr = g_malloc(sizeof(*outputPtr));
 
-    outputOpts.raw_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->raw_data_check));
-    outputOpts.fft_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->fft_data_check));
-    outputOpts.conv_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->conv_data_check));
-    outputOpts.final_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->final_data_check));
-    outputOpts.fname = fname;
-    outputOpts.data_dir = data_dir;
+    outputPtr->raw_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->raw_data_check));
+    outputPtr->fft_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->fft_data_check));
+    outputPtr->conv_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->conv_data_check));
+    outputPtr->final_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->final_data_check));
+    outputPtr->fname = fname;
+    outputPtr->data_dir = data_dir;
 
-    outputPtr = &outputOpts;
+    //outputPtr = &outputOpts;
     //g_free(data_dir);
     //g_free(fname);
 
+    GtkWidget *progressBar = uiWidgets->progressBar;
+    // Set our bar to 0%
+    gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressBar), 0.0);
     // Begin the acquisition
     // This does many things -- it records data (updating the progress bar),
     // processes that data, and outputs it (at the appropriate step(s)) as
     // requested.
-    //start_spec_acq(spectrometerIndex, integrationTime); // Update progressBar in here
+    int timeoutInterval = 100;
+    struct dataAcqParams *params = g_malloc(sizeof(*params));
 
+    params->spectrometerIndex = spectrometerIndex;
+    params->integrationTime = integrationTime;
+    params->measurement_reps = measurement_reps;
+    params->outputPtr = outputPtr;
+    params->progressBar = progressBar;
+    params->timeoutID = 0;
+    params->timeoutInterval = timeoutInterval;
+    params->self = params;
 
+gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(params->progressBar), 0.33);
+    GThread *tid;
+    //int timeoutID;
+    printf("Original pointer location: %p\n", (void *) progressBar);
+    //pthread_t tid;
+    // These lines are to ensure that our worker thread is "joinable" --
+    // this means that we can specify that we want to wait for it before
+    // letting the main thread move on.
+    /*pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);*/
+    // end joinable lines
 
+    /*int rc;
+    void *status;*/
+
+    // Start updating the progress bar:
+    params->timeoutID = gdk_threads_add_timeout(timeoutInterval, progressBar_timeout_cb,
+                                        params);
+    //params->timeoutID = g_timeout_add(timeoutInterval, progressBar_timeout_cb,
+    //                                            params);
+
+    //params->timeoutID = timeoutID;
+    //rc = pthread_create(&tid, &attr, start_data_acq, (void *) &params); // Update progressBar in here
+    tid = g_thread_new("acquire", start_data_acq, params);
+    worker_tid = tid; // Store this in a global in case we need to cancel it later
+    g_print("After thread creation...\n");
+    g_thread_unref(tid);
     // Stop the waveform generator:
     //stop_wvfm_gen();
 
+    // Ensure that our worker thread has finished:
+    //pthread_attr_destroy(&attr); // Free memory
+    //rc = pthread_join(tid, &status);
+    //g_print("After re-joining...\n");
+//g_usleep(3e6);
+    // Reset our global variable and change the text back:
+//    scan_running = 0;
+//    text = "Start Scan";
+//    gtk_button_set_label(button, text);
+    //g_free(params);
+
+    //g_source_remove(params->timeoutID);
   } else {
     scan_running = 0;
     char *text = "Start Scan";
@@ -196,7 +248,7 @@ int main(int    argc,
   userInputWidgets *uiWidgets = g_slice_new(userInputWidgets);
 
   // Load custom CSS:
-  GFile  *cssFile = g_file_new_for_path("./css/progressBar.css");
+  GFile  *cssFile = g_file_new_for_path("../css/progressBar.css");
   GtkCssProvider *cssProvider = gtk_css_provider_new();
   gtk_css_provider_load_from_file(cssProvider, cssFile, NULL);
   gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
@@ -208,7 +260,7 @@ int main(int    argc,
   g_object_unref(cssProvider);
 
   // get UI from our .glade file:
-  builder = gtk_builder_new_from_file("./glade/appLayout_V1.glade");
+  builder = gtk_builder_new_from_file("../glade/appLayout_V1.glade");
 
   // Apply UI to our window
   window = GTK_WIDGET(gtk_builder_get_object(builder, "window_main"));
@@ -230,6 +282,7 @@ int main(int    argc,
   uiWidgets->conv_data_check = GTK_WIDGET(gtk_builder_get_object(builder, "conv_data_save"));
   uiWidgets->final_data_check = GTK_WIDGET(gtk_builder_get_object(builder, "final_data_save"));
   uiWidgets->spectrometer_dialog = GTK_WIDGET(gtk_builder_get_object(builder, "spectrometer_dialog"));
+  uiWidgets->progressBar = GTK_WIDGET(gtk_builder_get_object(builder, "scan_progress_bar"));
 
   // Hook up the signals from the UI to their associated functions, and
   // pass our struct of data to be returned as "userdata" for when we need to
@@ -276,6 +329,7 @@ int main(int    argc,
 
   //g_object_unref(dialog);
   g_slice_free(userInputWidgets, uiWidgets);
+
   // TODO: Add turn-off of spectrometers / function generator here
   //wrapper.closeAllSpectrometers(); // Turns off all spectrometers
   //stop_wvfm_gen();
