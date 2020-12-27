@@ -16,5 +16,6 @@ struct dataAcqParams {
 
 void *start_data_acq(gpointer data);
 int progressBar_timeout_cb(gpointer data);
+void *stop_data_acq(gpointer data);
 
 #endif
