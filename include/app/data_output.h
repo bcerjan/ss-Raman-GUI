@@ -7,10 +7,10 @@ struct dataOuputOpts {
   int fft_data;
   int conv_data;
   int final_data;
-  char *fname;
+  const char *fname;
   char *data_dir;
 };
 
-void output_data(char *data_dir, char *fname, struct dataCheckboxes *checkboxes);
+void output_data(struct dataOuputOpts *checkboxes);
 
 #endif
