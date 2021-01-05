@@ -20,9 +20,11 @@
 #include "acquire_data.h"
 
 // Variable to track if we're currently running a scan or not:
-static int scan_running = 0;
-static GThread *worker_tid;
-static struct dataAcqParams *worker_params;
+//static int scan_running = 0;
+//static GThread *worker_tid;
+//static struct dataAcqParams *worker_params;
+// This needs to be global so we can cancel an acquisition if we need to
+static GCancellable *cancellable;
 
 // Struct to hold all of the widgets when we start or stop a scan
 typedef struct {
@@ -90,7 +92,7 @@ void scan_button_clicked_cb(GtkButton *button,
 {
   g_print("scan_button clicked\n");
   const char *cur_text = gtk_button_get_label(button);
-  g_print(cur_text);
+  //g_print(cur_text);
 
   if (g_strcmp0("Start Scan", cur_text) == 0) { // We are not currently running a scan
     // Check this first to make sure this scan has a spectrometer selected
@@ -102,10 +104,12 @@ void scan_button_clicked_cb(GtkButton *button,
       return;
     }*/
 
+    // Initialize our cancellable object:
+    cancellable = g_cancellable_new();
 
     const char *text = "Stop Scan";
     gtk_button_set_label(button, text);
-    g_free(text);
+    //g_free(text);
 
     // Prepare to start wafeform generation:x
     int pn_bit_len;
@@ -157,7 +161,7 @@ void scan_button_clicked_cb(GtkButton *button,
     outputPtr->data_dir = data_dir;
 
     g_free(data_dir);
-    g_free(fname);
+    //g_free(fname);
 
     // Now we're preparing to call our worker thread to take a measurement
     GtkWidget *progressBar = uiWidgets->progressBar;
@@ -173,31 +177,39 @@ void scan_button_clicked_cb(GtkButton *button,
     params->spectrometerIndex = spectrometerIndex;
     params->integrationTime = integrationTime;
     params->measurement_reps = measurement_reps;
+    params->mod_freq = mod_freq;
     params->outputPtr = outputPtr;
     params->progressBar = progressBar;
     params->timeoutID = 0;
     params->timeoutInterval = timeoutInterval;
-    params->self = params;
+    params->cancellable = cancellable;
+    //params->self = params;
 
     //params->spectrometerWrapper = uiWidgets->spectrometerWrapper;
 
-    GThread *tid;
+    //GThread *tid;
 
     // Start updating the progress bar:
     params->timeoutID = gdk_threads_add_timeout(timeoutInterval, progressBar_timeout_cb,
                                         params);
 
+printf("PBar Pointer Initial: %p\n", params->progressBar);
     // Store pointer to params so we can free it later if we need to:
-    worker_params = params;
+    //worker_params = params;
 
     // Begin the acquisition
     // This does many things -- it records data (updating the progress bar),
     // processes that data, and outputs it (at the appropriate step(s)) as
     // requested.
-    tid = g_thread_new("acquire", start_data_acq, params);
+    /*tid = g_thread_new("acquire", start_data_acq, params);
     worker_tid = tid; // Store this in a global in case we need to cancel it later
     g_print("After thread creation...\n");
-    g_thread_unref(tid);
+    g_thread_unref(tid);*/
+g_print("About to start async...\n");
+
+
+    start_data_acq_async(params, cancellable, NULL, NULL);
+
     // Stop the waveform generator:
     //stop_wvfm_gen();
 
@@ -205,19 +217,34 @@ void scan_button_clicked_cb(GtkButton *button,
     //scan_running = 0;
     const char *text = "Start Scan";
     gtk_button_set_label(button, text);
-    g_free(text);
+    //g_free(text);
     //stop_wvfm_gen();
-    stop_data_acq(worker_params);
+    //stop_data_acq(worker_params);
+    g_cancellable_cancel(cancellable);
+    //WAIT FOR SCAN TO FINISH!!!!
     //clear_data(); // If needed
   }
 
-  g_free(cur_text);
+  //g_free(cur_text);
 }
 
 // Someone wants to see the help documentation
-void on_help_help_activate()
+void on_help_help_activate(GtkWidget *self)
 {
+  GError *error = NULL;
+  //GtkWidget *window = gtk_widget_get_toplevel(self);
+  const char *path = "../help/help.pdf";
+  GFile *h_file = g_file_new_for_path(path);
+  char *uri = g_file_get_uri(h_file);
+  printf("Help URI: %s\n", uri);
   g_print("Open help!\n");
+  gtk_show_uri_on_window(NULL, uri, GDK_CURRENT_TIME, &error);
+
+  if (error != NULL) {
+    fprintf(stderr, "Unable to read file: %s\n", error->message);
+  }
+  g_free(uri);
+  g_object_unref(h_file);
 }
 
 int main(int    argc,
