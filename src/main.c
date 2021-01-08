@@ -18,6 +18,7 @@
 #include "data_output.h"
 #include "waveform_gen.h"
 #include "acquire_data.h"
+#include "measurement_params.h"
 
 // Variable to track if we're currently running a scan or not:
 //static int scan_running = 0;
@@ -117,18 +118,12 @@ void scan_button_clicked_cb(GtkButton *button,
     // entry 0 is 32 and they multiply by power of two after that, this works
     // by bit-shifting which produces multiplication by powers of 2.
     // See https://stackoverflow.com/questions/141525/what-are-bitwise-shift-bit-shift-operators-and-how-do-they-work
-    pn_bit_len = 32 << gtk_combo_box_get_active(GTK_COMBO_BOX(uiWidgets->pn_bit_length_entry));
+    pn_bit_len = pn_code_lengths[0] << gtk_combo_box_get_active(GTK_COMBO_BOX(uiWidgets->pn_bit_length_entry));
 
     // Get modulation frequency in MHz
     int mod_freq, mod_freq_ind;
     mod_freq_ind = gtk_combo_box_get_active(GTK_COMBO_BOX(uiWidgets->mod_freq_comboBox));
-    if (mod_freq_ind == 0) {
-      mod_freq = 100e6; // Hz
-    } else if (mod_freq_ind == 1) {
-      mod_freq = 250e6; // Hz
-    } else if (mod_freq_ind == 2) {
-      mod_freq = 500e6; // Hz
-    }
+    mod_freq = mod_freqs[mod_freq_ind];
 
     // Start the waveform generator:
     //start_wvfm_gen(pn_bit_len, mod_freq);
@@ -178,16 +173,17 @@ void scan_button_clicked_cb(GtkButton *button,
     params->integrationTime = integrationTime;
     params->measurement_reps = measurement_reps;
     params->mod_freq = mod_freq;
+    params->pn_bit_length = pn_bit_len;
     params->outputPtr = outputPtr;
     params->progressBar = progressBar;
     params->timeoutID = 0;
     params->timeoutInterval = timeoutInterval;
     params->cancellable = cancellable;
+    //params->btn = button;
     //params->self = params;
 
     //params->spectrometerWrapper = uiWidgets->spectrometerWrapper;
 
-    //GThread *tid;
 
     // Start updating the progress bar:
     params->timeoutID = gdk_threads_add_timeout(timeoutInterval, progressBar_timeout_cb,
@@ -201,10 +197,7 @@ printf("PBar Pointer Initial: %p\n", params->progressBar);
     // This does many things -- it records data (updating the progress bar),
     // processes that data, and outputs it (at the appropriate step(s)) as
     // requested.
-    /*tid = g_thread_new("acquire", start_data_acq, params);
-    worker_tid = tid; // Store this in a global in case we need to cancel it later
-    g_print("After thread creation...\n");
-    g_thread_unref(tid);*/
+
 g_print("About to start async...\n");
 
 
@@ -212,6 +205,8 @@ g_print("About to start async...\n");
 
     // Stop the waveform generator:
     //stop_wvfm_gen();
+    //g_free(outputPtr);
+    //g_free(params);
 
   } else {
     //scan_running = 0;
@@ -294,6 +289,26 @@ int main(int    argc,
   uiWidgets->final_data_check = GTK_WIDGET(gtk_builder_get_object(builder, "final_data_save"));
   uiWidgets->spectrometer_dialog = GTK_WIDGET(gtk_builder_get_object(builder, "spectrometer_dialog"));
   uiWidgets->progressBar = GTK_WIDGET(gtk_builder_get_object(builder, "scan_progress_bar"));
+
+  // Alter lists of modulation frequencies and pn bit length based on details in
+  // measurement_params.h
+  for(int i = 0; i < MODULATION_OPTS; i++) {
+    char text[50];
+    sprintf(text, "%d", mod_freqs[i]);
+    gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(uiWidgets->mod_freq_comboBox),
+                              NULL, text);
+  }
+
+  gtk_combo_box_set_active(GTK_COMBO_BOX(uiWidgets->mod_freq_comboBox), 1);
+
+  for(int i = 0; i < PN_CODE_LENGTH_OPTS; i++) {
+    char text[50];
+    sprintf(text, "%d", pn_code_lengths[i]);
+    gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(uiWidgets->pn_bit_length_entry),
+                              NULL, text);
+  }
+
+  gtk_combo_box_set_active(GTK_COMBO_BOX(uiWidgets->pn_bit_length_entry), 2);
 
   // Hook up the signals from the UI to their associated functions, and
   // pass our struct of data to be returned as "userdata" for when we need to
