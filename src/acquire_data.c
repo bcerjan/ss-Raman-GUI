@@ -30,6 +30,7 @@ as needed (automatically naming files for multiple runs)
 
 int timeoutLoops = 1; // global to track how many loops we've done for the progress bar
 
+
 // Function to update the progress bar to a given fraction of fullness:
 void update_progressBar(GtkWidget *progressBar,
                         double fraction)
@@ -45,8 +46,8 @@ g_print("Inside complete_progressBar...\n");
   progressBar = params->progressBar;
   g_source_remove(params->timeoutID); // This turns off our progress bar updates
   update_progressBar(progressBar, 1.0);
-  //const char *text = "Start Scan";
-  //gtk_button_set_label(params->btn, text);
+  const char *text = "Start Scan";
+  gtk_button_set_label(GTK_BUTTON(params->scan_btn), text);
   timeoutLoops = 1;
   return G_SOURCE_REMOVE;
 }
@@ -80,6 +81,7 @@ int progressBar_timeout_cb(gpointer data)
 
 void free_data_acq_data(void *data)
 {
+g_print("Freeing Data...\n");
   struct dataAcqParams *params = data;
   g_free(params->outputPtr);
   g_free(params);
@@ -92,16 +94,18 @@ int data_acq(struct dataAcqParams *data)
   int i,j;
   int integrationTime = params->integrationTime;
   int measurement_reps = params->measurement_reps;
-  int mod_freq = params->mod_freq;
-  int pn_bit_len = params->pn_bit_length;
-  GtkWidget *progressBar = params->progressBar;
   int spectrometerIndex = params->spectrometerIndex;
 
   //double speedC = 2.99792458e17; // In nm/sec
 
   // Set up initial data from the spectrometer:
   //Wrapper *wrapper = params->spectrometerWrapper; // Maybe not correct...
-  //int numberOfPixels;
+  int numberOfPixels = 10; // For testing, hard code all of these
+  double wavelengths[10] = {0.0};
+  double frequencies[10] = {0.0};
+  double pixelValues[10] = {0.0};
+  wavelengths[3] = 3.14;
+  pixelValues[6] = 8.22;
   //double *wavelengths, *frequencies;
   //DoubleArray pixelArray; // Storage for data from the spectrometer
 
@@ -153,7 +157,7 @@ int data_acq(struct dataAcqParams *data)
 
     // We're now ready to process / output our data (if requested):
     // Export raw data if requested:
-    //output_data_raw(wavelengths, pixelValues);
+    output_data(numberOfPixels, wavelengths, pixelValues, i, params);
 
     // Then we need to convert from wavelength to frequency (for FFT interpretation):
 
@@ -166,6 +170,8 @@ int data_acq(struct dataAcqParams *data)
   //wrapper.setIntegrationTime(spectrometerIndex, 10000); // set to 10 ms
   // If we reach here, we're done!
   gdk_threads_add_idle(complete_progressBar, params); // This also turns off the progress bar updates
+  g_usleep(500000); // Delay to prevent race condition with freeing of data...
+                    // There really should be a better method for this, but I can't tell what it is
 
   //free_data_acq_data(params);
   //g_free(pixelValues);
@@ -205,9 +211,9 @@ g_print("Starting task...\n");
   GTask *task = NULL;
   struct dataAcqParams *params;
   params = (struct dataAcqParams *) data;
-printf("PBar Pointer Async: %p\n", params->progressBar);
+//printf("Btn Pointer Async: %p\n", params->scan_btn);
   // Error if this is badly formatted:
-  g_return_if_fail(cancellable == NULL | G_IS_CANCELLABLE(cancellable));
+  g_return_if_fail( (cancellable == NULL) | G_IS_CANCELLABLE(cancellable) );
 g_print("Set as cancellable???\n");
   task = g_task_new(NULL, cancellable, callback, user_data);
   g_task_set_source_tag(task, start_data_acq_async);
