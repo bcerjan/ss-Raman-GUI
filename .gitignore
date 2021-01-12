@@ -63,8 +63,14 @@ include/fftw/
 include/wavepond/
 include/gtk
 
+# Testing files in src:
+src/test.*
+
 # Other people's def files:
 *.def
+
+# Other libraries:
+lib/fftw/*
 
 # Overview notes, which should eventually be moved to issue tracking / README
 # on GitHub
