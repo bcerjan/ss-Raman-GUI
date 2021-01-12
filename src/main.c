@@ -42,6 +42,7 @@ typedef struct {
   GtkWidget *final_data_check;
   GtkWidget *spectrometer_dialog;
   GtkWidget *progressBar;
+  GtkWidget *scan_btn;
 } userInputWidgets; // Don't love using a typedef here...
                     // Seems to be required to use g_slice_new()
 
@@ -139,7 +140,7 @@ void scan_button_clicked_cb(GtkButton *button,
     measurement_reps = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(uiWidgets->num_meas_entry));
 
     // Filename and directory for data output
-    char *data_dir;
+    const char *data_dir;
     data_dir = gtk_file_chooser_get_uri(GTK_FILE_CHOOSER(uiWidgets->data_dir_entry));
 
     const char *fname;
@@ -155,12 +156,12 @@ void scan_button_clicked_cb(GtkButton *button,
     outputPtr->fname = fname;
     outputPtr->data_dir = data_dir;
 
-    g_free(data_dir);
+    //g_free(data_dir);
     //g_free(fname);
 
     // Now we're preparing to call our worker thread to take a measurement
     GtkWidget *progressBar = uiWidgets->progressBar;
-
+    GtkWidget *scan_btn = uiWidgets->scan_btn;
     // Set our bar to 0%
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressBar), 0.0);
 
@@ -179,7 +180,7 @@ void scan_button_clicked_cb(GtkButton *button,
     params->timeoutID = 0;
     params->timeoutInterval = timeoutInterval;
     params->cancellable = cancellable;
-    //params->btn = button;
+    params->scan_btn = scan_btn;
     //params->self = params;
 
     //params->spectrometerWrapper = uiWidgets->spectrometerWrapper;
@@ -189,7 +190,7 @@ void scan_button_clicked_cb(GtkButton *button,
     params->timeoutID = gdk_threads_add_timeout(timeoutInterval, progressBar_timeout_cb,
                                         params);
 
-printf("PBar Pointer Initial: %p\n", params->progressBar);
+//printf("Btn Pointer Initial: %p\n", params->scan_btn);
     // Store pointer to params so we can free it later if we need to:
     //worker_params = params;
 
@@ -289,6 +290,8 @@ int main(int    argc,
   uiWidgets->final_data_check = GTK_WIDGET(gtk_builder_get_object(builder, "final_data_save"));
   uiWidgets->spectrometer_dialog = GTK_WIDGET(gtk_builder_get_object(builder, "spectrometer_dialog"));
   uiWidgets->progressBar = GTK_WIDGET(gtk_builder_get_object(builder, "scan_progress_bar"));
+  uiWidgets->scan_btn = GTK_WIDGET(gtk_builder_get_object(builder, "scan_button"));
+
 
   // Alter lists of modulation frequencies and pn bit length based on details in
   // measurement_params.h
@@ -321,7 +324,7 @@ int main(int    argc,
   // Set up waveform generator:
   DWORD NumCards = 0;
   NumCards = DAx22000_GetNumCards();
-  printf("Number of Cards = %d\n", NumCards);
+  printf("Number of Cards = %ld\n", NumCards);
   /*if (NumCards == 0) {
     gtk_widget_show(dialog);
   }*/
