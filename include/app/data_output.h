@@ -1,16 +1,19 @@
 #ifndef DATA_OUTPUT
 #define DATA_OUTPUT
 
-// Note: check the state using: if (dataCheckboxes->raw_data) {}
+#include "acquire_data.h"
+
+// Note: check the state using (e.g.): if (dataCheckboxes->raw_data) {}
 struct dataOuputOpts {
   int raw_data;
   int fft_data;
   int conv_data;
   int final_data;
   const char *fname;
-  char *data_dir;
+  const char *data_dir;
 };
 
-void output_data(struct dataOuputOpts *checkboxes);
+void output_data(int numPixels, double wavelengths[], double pixelValues[],
+                  int iteration, struct dataAcqParams *params);
 
 #endif

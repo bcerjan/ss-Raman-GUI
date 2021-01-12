@@ -7,11 +7,12 @@ struct dataAcqParams {
   int integrationTime; // in ms
   int measurement_reps; // in #
   int mod_freq; // in Hz
+  int pn_bit_length; // Length of pn code
   struct dataOuputOpts *outputPtr;
   GtkWidget *progressBar;
   int timeoutID;
   int timeoutInterval;
-  GtkWidget *btn; // Start/Stop button
+  GtkWidget *scan_btn; // Start/Stop button
   //struct dataAcqParams *self; // So we can free our struct from a thread
   GCancellable *cancellable;
 };
