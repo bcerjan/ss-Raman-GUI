@@ -5,6 +5,9 @@
   <object class="GtkFileChooserDialog" id="filename_dialog">
     <property name="can-focus">False</property>
     <property name="no-show-all">True</property>
+    <property name="title" translatable="yes">Select a Folder</property>
+    <property name="modal">True</property>
+    <property name="icon-name">folder</property>
     <property name="type-hint">dialog</property>
     <property name="action">select-folder</property>
     <child internal-child="vbox">
@@ -17,10 +20,32 @@
             <property name="can-focus">False</property>
             <property name="layout-style">end</property>
             <child>
-              <placeholder/>
+              <object class="GtkButton" id="select_directory_btn">
+                <property name="label" translatable="yes">Select Directory</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="can-default">True</property>
+                <property name="receives-default">True</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkButton" id="cancel_directory_btn">
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="can-default">True</property>
+                <property name="receives-default">True</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
             </child>
           </object>
           <packing>
@@ -29,11 +54,12 @@
             <property name="position">0</property>
           </packing>
         </child>
-        <child>
-          <placeholder/>
-        </child>
       </object>
     </child>
+    <action-widgets>
+      <action-widget response="-5">select_directory_btn</action-widget>
+      <action-widget response="-6">cancel_directory_btn</action-widget>
+    </action-widgets>
   </object>
   <object class="GtkMessageDialog" id="function_generator_dialog">
     <property name="can-focus">False</property>
@@ -255,7 +281,8 @@
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="action">select-folder</property>
-                    <property name="title" translatable="yes">Please enter a filename</property>
+                    <property name="dialog">filename_dialog</property>
+                    <property name="title" translatable="yes">Please Choose a Directory</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -429,14 +456,6 @@
                     <property name="can-focus">False</property>
                     <property name="margin-start">1</property>
                     <property name="active">2</property>
-                    <items>
-                      <item id="pn_length_32" translatable="yes">32</item>
-                      <item id="pn_length_64" translatable="yes">64</item>
-                      <item id="pn_length_128" translatable="yes">128</item>
-                      <item id="pn_length_256" translatable="yes">256</item>
-                      <item id="pn_length_512" translatable="yes">512</item>
-                      <item id="pn_length_1024" translatable="yes">1024</item>
-                    </items>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -561,7 +580,7 @@
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">Modulation Frequency</property>
+                    <property name="label" translatable="yes">Modulation Frequency (MHz)</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -575,11 +594,6 @@
                     <property name="can-focus">False</property>
                     <property name="margin-bottom">1</property>
                     <property name="active">1</property>
-                    <items>
-                      <item translatable="yes">100 MHz</item>
-                      <item translatable="yes">250 MHz</item>
-                      <item translatable="yes">500 MHz</item>
-                    </items>
                   </object>
                   <packing>
                     <property name="expand">False</property>
