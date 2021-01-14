@@ -8,7 +8,7 @@
 #include "data_output.h"
 
 // May need to adjust to longer precision...
-void append_line(FILE *filePtr, double x, double y)
+void write_line(FILE *filePtr, double x, double y)
 {
   fprintf(filePtr, "%lf,%lf\n", x, y);
   return;
@@ -48,7 +48,7 @@ g_print("\n");
     outFile = fopen(fullPath, "w");
 
     for (i = 0; i < numPixels; i++) {
-      append_line(outFile, wavelengths[i], pixelValues[i]);
+      write_line(outFile, wavelengths[i], pixelValues[i]);
     }
 
     g_free(fullPath);
