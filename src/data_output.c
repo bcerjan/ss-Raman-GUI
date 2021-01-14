@@ -17,6 +17,7 @@ void append_line(FILE *filePtr, double x, double y)
 void output_data(int numPixels,
                  double wavelengths[],
                  double pixelValues[],
+                 double pn_interp_fft[],
                  int iteration,
                  struct dataAcqParams *params)
 {
@@ -55,7 +56,7 @@ g_print("\n");
     fclose(outFile);
   }
 
-/*  if (outputPtr->final_data) {
+  if (outputPtr->final_data) {
     gchar iterText[10];
     sprintf(iterText, "%d", iteration);
     gchar *fullPath = g_strjoin(NULL, basePath, "_final_", iterText, NULL);
@@ -65,10 +66,11 @@ g_print("\n");
     // DO POINTWISE MULTIPLICATION!!!!
 
     for (i = 0; i < numPixels; i++) {
-      write_line(outFile, wavelengths[i], pixelValues[i]);
+      double value = pixelValues[i] * pn_interp_fft[i];
+      write_line(outFile, wavelengths[i], value);
     }
     g_free(basePath);
     fclose(outFile);
   }
-*/
+
 }

@@ -13,7 +13,11 @@ struct dataOuputOpts {
   const char *data_dir;
 };
 
-void output_data(int numPixels, double wavelengths[], double pixelValues[],
-                  int iteration, struct dataAcqParams *params);
+void output_data(int numPixels,
+                 double wavelengths[],
+                 double pixelValues[],
+                 double pn_interp_fft[],
+                 int iteration,
+                 struct dataAcqParams *params);
 
 #endif
