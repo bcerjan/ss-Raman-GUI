@@ -136,7 +136,7 @@ void scan_button_clicked_cb(GtkButton *button,
 
 
     // Get number of measurements we want to do right now:
-    int measurement_reps,i;
+    int measurement_reps;
     measurement_reps = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(uiWidgets->num_meas_entry));
 
     // Filename and directory for data output
