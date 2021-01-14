@@ -23,6 +23,7 @@ as needed (automatically naming files for multiple runs)
 // Data output header file, contains struct definition
 #include "data_output.h"
 #include "acquire_data.h"
+#include "fft_functions.h"
 
 // PN code header:
 #include "pn_code.h"
@@ -91,10 +92,12 @@ g_print("Freeing Data...\n");
 int data_acq(struct dataAcqParams *data)
 {
   struct dataAcqParams *params = data;
-  int i,j;
+  int i;
   int integrationTime = params->integrationTime;
   int measurement_reps = params->measurement_reps;
   int spectrometerIndex = params->spectrometerIndex;
+  int mod_freq = params->mod_freq;
+  int pn_bit_len = params->pn_bit_length;
 
   //double speedC = 2.99792458e17; // In nm/sec
 
@@ -118,13 +121,61 @@ int data_acq(struct dataAcqParams *data)
   // Convert from nm to Hz (assuming it's in nm...)
   /*for (i = 0; i < numberOfPixels; i++) {
     // Assuming wavlenghts are in nm for the moment:
-    frequencies[i] = speedC / wavelengths[i];
+    frequencies[i] = speedC / wavelengths[numberOfPixels - 1 - i]; // Need to reorder to be from 0 -> MaxFreq instead of the opposite
   }*/
 
-  // Find highest frequency we care about and convert it to a sampling rate:
-  //double maxFreq = frequencies[0]; // Or maybe frequencies[numberOfPixels-1], depends on ordering
-  //double sampFreq = 2.01*maxFreq; // How fast we need to sample in time to get an FFT result that is meaningful (the extra 0.01 is for leeway...)
+  // Generate PN FFT data for multiplication (if needed)
+  unsigned long int fft_length;
+  double *pn_fft_freq, *pn_fft_pow,*pn_interp_fft;
 
+  if (params->outputPtr->final_data) {
+    fft_length = calc_fft_length(pn_bit_len);
+    pn_fft_freq = g_malloc0(sizeof(*pn_fft_freq) * fft_length); // As long as our output
+    pn_fft_pow = g_malloc0(sizeof(*pn_fft_pow) * fft_length); // ""
+    pn_interp_fft = g_malloc0(sizeof(*pn_interp_fft) * numberOfPixels); // Same number of elements as Pixels
+
+    // Get PN bits:
+    int pn_bits[1024] = {0};
+    if (pn_bit_len == 32) {
+      for (i = 0; i < pn_bit_len; i++) {
+        pn_bits[i] = pn_32_bit[i];
+      }
+    } else if (pn_bit_len == 64) {
+      for (i = 0; i < pn_bit_len; i++) {
+        pn_bits[i] = pn_64_bit[i];
+      }
+    } else if (pn_bit_len == 128) {
+      for (i = 0; i < pn_bit_len; i++) {
+        pn_bits[i] = pn_128_bit[i];
+      }
+    } else if (pn_bit_len == 256) {
+      for (i = 0; i < pn_bit_len; i++) {
+        pn_bits[i] = pn_256_bit[i];
+      }
+    } else if (pn_bit_len == 512) {
+      for (i = 0; i < pn_bit_len; i++) {
+        pn_bits[i] = pn_512_bit[i];
+      }
+    } else if (pn_bit_len == 1024) {
+      for (i = 0; i < pn_bit_len; i++) {
+        pn_bits[i] = pn_1024_bit[i];
+      }
+    }
+
+    // This generates the FFT of the PN code for the current bit length and
+    // modulation frequency.
+    generate_pn_fft(mod_freq, pn_bit_len, pn_bits, fft_length,
+                    pn_fft_freq, pn_fft_pow);
+
+    // This interpolates our FFT of the PN code to the same frequencies as the
+    // data from the spectrometer. We do this here so it's only done once no
+    // matter how many measurement repetitions we do.
+    interpolate_fft_data(numberOfPixels, frequencies, fft_length, pn_fft_freq,
+                         pn_fft_pow, pn_interp_fft);
+
+    g_free(pn_fft_freq);
+    g_free(pn_fft_pow);
+  } /* if for final data */
 
   // Cycle for each measurement repetition:
   for (i = 0; i < measurement_reps; i++) {
@@ -137,7 +188,7 @@ int data_acq(struct dataAcqParams *data)
       //g_free(pn_fft);
       //g_free(freq_fft);
       return 1; // Memory freeing function called automatically
-    }
+    } /* if cancelled */
 
     // For testing, sleep for the requested integration time
     g_print("Performing a measurement...\n");
@@ -157,12 +208,16 @@ int data_acq(struct dataAcqParams *data)
 
     // We're now ready to process / output our data (if requested):
     // Export raw data if requested:
-    output_data(numberOfPixels, wavelengths, pixelValues, i, params);
+    output_data(numberOfPixels, wavelengths, pixelValues, pn_interp_fft, i, params);
 
     // Then we need to convert from wavelength to frequency (for FFT interpretation):
 
 
 
+  } /* i for loop */
+
+  if (params->outputPtr->final_data) {
+    g_free(pn_interp_fft); // Free if we allocated it
   }
 
   // Set the integration time to something short so we're ready in case it
