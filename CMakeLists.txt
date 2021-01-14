@@ -39,6 +39,7 @@ SET (COMMON_SRCS
   ${MAIN_SRC_DIR}/waveform_gen.c
   ${MAIN_SRC_DIR}/acquire_data.c
   ${MAIN_SRC_DIR}/data_output.c
+  ${MAIN_SRC_DIR}/fft_functions.c
 )
 
 SET (TEST_SRCS
@@ -75,6 +76,7 @@ TARGET_LINK_LIBRARIES(app PUBLIC m)
 TARGET_LINK_LIBRARIES(test PUBLIC m)
 
 # Add FFTW Library:
+TARGET_LINK_LIBRARIES(app PUBLIC fftw3)
 TARGET_LINK_LIBRARIES(test PUBLIC fftw3)
 
 # Add pthreading:
