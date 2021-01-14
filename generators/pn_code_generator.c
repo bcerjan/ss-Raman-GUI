@@ -115,83 +115,6 @@ void write_pn_block(FILE *fPtr, int data[], int pn_bit_len)
 
 }
 
-void generate_fft_data(int mod_freq, int pn_bit_len, int pn_bits[], double fft[])
-{
-  double speedC = 2.99792458e11; // In nm/microsecond
-
-  double sampFreq = 2.0 * speedC / LASER_WAVELENGTH; // Our data will always be at lower frequencies than this
-
-  // Now, we need to set up our pn code array with an appropriate number of sampeles/sec
-  // To reduce the size of the arrays, we're using MHz as our default unit instead of Hz
-  // (so usec (micro) instead of sec)
-
-  double bit_duration = 1.0/((double ) mod_freq); // How long each bit is in microseconds
-  double samps_per_bit = bit_duration * sampFreq;
-  // Make sure this needs to be unsigned long (or if it needs to be long long...)
-  unsigned long int isamps_per_bit = (unsigned long int )samps_per_bit; // This should always be a huge number without any decimals, so this cast shouldn't be an issue
-  double total_time = (double )pn_bit_len * bit_duration;
-  double total_samps = total_time * sampFreq;
-  unsigned long int itotal_samps = (unsigned long int )total_samps;
-  // Maybe pad this to a "good" number, but should be pretty close to start with
-
-  // Convert our pn_bits to double:
-  double *pn_temp_bit;
-  g_malloc0(sizeof(*pn_temp_bit) * pn_bit_len);
-
-  for (i = 0; i < pn_bit_len; i++) {
-    pn_temp_bit[i] = (double )pn_bits[i];
-  }
-
-  double *high_res_pn;
-  g_malloc0(sizeof(*high_res_pn) * itotal_samps);
-printf("Value of total_samps: %f\n", total_samps);
-printf("Value of itotal_samps: %u\n", itotal_samps);
-  // Now prepare our array to be FT'd -- this should almost certainly be padded to a power of 2...
-  for (i = 0; i < pn_bit_len; i++) {
-    for (j = 0; j < isamps_per_bit; j++) {
-      int idx = j + i*isamps_per_bit;
-      high_res_pn[idx] = pn_temp_bit[i];
-    }
-  }
-
-  g_free(pn_temp_bit);
-
-  // Now prepare to do the FFT
-  fftw_complex *pn_fft_out;
-  fftw_plan p_r2c;
-
-  num_cmp_elements = (int) floor((total_samps / 2.0)) + 1; // Number of elements in our output DFT arrays
-
-  pn_fft_out = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * num_cmp_elements);
-
-  p_r2c = fftw_plan_dft_r2c_1d(itotal_samps, high_res_pn, pn_fft_out, FFTW_ESTIMATE);
-
-  // Run the FFT:
-  fftw_execute(p_r2c);
-
-  // Get magnitudes from the FFT:
-  double *pn_fft, *freq_fft;
-  g_malloc0(sizeof(*pn_fft) * num_cmp_elements);
-  g_malloc0(sizeof(*freq_fft) * num_cmp_elements);
-
-  for (i = 0; i < num_cmp_elements; i++) {
-    // Magnitude of each component:
-    pn_fft[i] = sqrt( pow( abs( c_re(pn_fft_out[i]) ), 2) +
-                      pow( abs( c_im(pn_fft_out[i]) ), 2) );
-
-    freq_fft[i] = sampFreq * ((double ) i) / total_time; // Frequency of each point in the FFT
-  }
-
-  // Free data:
-  g_free(high_res_pn);
-
-  fftw_destroy_plan(p_r2c);
-
-  fftw_free(pn_fft_out);
-
-  return;
-}
-
 int main() {
   // Initialize our array at its maximum possible size:
   int seed = 0x1; // Probably don't change this
@@ -216,10 +139,6 @@ int main() {
   pn_32_generate(output);
   // and write it out:
   write_pn_block(headerPtr, output, 32);
-
-  // And now we take an FFT:
-  /*double fft[5] = {0.0};
-  generate_fft_data(mod_freqs[0], 32, output, fft);*/
 
   // Now, we repeat this for each of the code lengths:
   fprintf(headerPtr, "static const int pn_64_bit[64] = {\n");
