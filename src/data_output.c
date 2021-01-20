@@ -23,7 +23,7 @@ void output_data(int numPixels,
 {
   int i;
   // Get the information about which outputs / where they should go:
-  struct dataOuputOpts *outputPtr = params->outputPtr;
+  struct dataOutputOpts *outputPtr = params->outputPtr;
   const char *baseFname = params->outputPtr->fname;
   const gchar *data_dir = params->outputPtr->data_dir;
   gchar *basePath = g_strjoin("/", data_dir, baseFname, NULL);
@@ -38,6 +38,7 @@ g_print("\n");
 g_print(basePath);
 g_print("\n");
 
+  // Output raw spectrometer data
   if (outputPtr->raw_data) {
     gchar iterText[10];
     sprintf(iterText, "%d", iteration);
@@ -56,6 +57,22 @@ g_print("\n");
     fclose(outFile);
   }
 
+  // Output our interpolated PN FFT
+  if (outputPtr->pn_fft_data && iteration == 0) {
+    // Only output this once, as it's constant as a function of iteration
+    gchar *fullPath = g_strjoin(NULL, basePath, "_pn_fft", NULL);
+    FILE *outFile;
+    outFile = fopen(fullPath, "w");
+    fprintf(outFile, headerLines);
+
+    for (i = 0; i < numPixels; i++) {
+      write_line(outFile, wavelengths[i], pn_interp_fft[i]);
+    }
+    g_free(basePath);
+    fclose(outFile);
+  }
+
+  // Output the point-wise multiplication of spectrum and PN FFT
   if (outputPtr->final_data) {
     gchar iterText[10];
     sprintf(iterText, "%d", iteration);
@@ -63,10 +80,9 @@ g_print("\n");
     FILE *outFile;
     outFile = fopen(fullPath, "w");
     fprintf(outFile, headerLines);
-    // DO POINTWISE MULTIPLICATION!!!!
 
     for (i = 0; i < numPixels; i++) {
-      double value = pixelValues[i] * pn_interp_fft[i];
+      double value = pixelValues[i] * pn_interp_fft[i]; // point-wise multiplication
       write_line(outFile, wavelengths[i], value);
     }
     g_free(basePath);

@@ -37,8 +37,7 @@ typedef struct {
   GtkWidget *integration_time_entry;
   GtkWidget *mod_freq_comboBox;
   GtkWidget *raw_data_check;
-  GtkWidget *fft_data_check;
-  GtkWidget *conv_data_check;
+  GtkWidget *pn_fft_data_check;
   GtkWidget *final_data_check;
   GtkWidget *spectrometer_dialog;
   GtkWidget *progressBar;
@@ -147,11 +146,10 @@ void scan_button_clicked_cb(GtkButton *button,
     fname = gtk_entry_get_text(GTK_ENTRY(uiWidgets->data_fname_entry));
 
     // Prepare struct of output options (which data, where it goes)
-    struct dataOuputOpts *outputPtr = g_malloc(sizeof(*outputPtr));
+    struct dataOutputOpts *outputPtr = g_malloc(sizeof(*outputPtr));
 
     outputPtr->raw_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->raw_data_check));
-    outputPtr->fft_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->fft_data_check));
-    outputPtr->conv_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->conv_data_check));
+    outputPtr->pn_fft_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->pn_fft_data_check));
     outputPtr->final_data = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(uiWidgets->final_data_check));
     outputPtr->fname = fname;
     outputPtr->data_dir = data_dir;
@@ -285,8 +283,7 @@ int main(int    argc,
   uiWidgets->integration_time_entry = GTK_WIDGET(gtk_builder_get_object(builder, "integration_time"));
   uiWidgets->mod_freq_comboBox = GTK_WIDGET(gtk_builder_get_object(builder, "mod_freq_box"));
   uiWidgets->raw_data_check = GTK_WIDGET(gtk_builder_get_object(builder, "raw_data_save"));
-  uiWidgets->fft_data_check = GTK_WIDGET(gtk_builder_get_object(builder, "fft_data_save"));
-  uiWidgets->conv_data_check = GTK_WIDGET(gtk_builder_get_object(builder, "conv_data_save"));
+  uiWidgets->pn_fft_data_check = GTK_WIDGET(gtk_builder_get_object(builder, "pn_fft_data_save"));
   uiWidgets->final_data_check = GTK_WIDGET(gtk_builder_get_object(builder, "final_data_save"));
   uiWidgets->spectrometer_dialog = GTK_WIDGET(gtk_builder_get_object(builder, "spectrometer_dialog"));
   uiWidgets->progressBar = GTK_WIDGET(gtk_builder_get_object(builder, "scan_progress_bar"));

@@ -4,10 +4,9 @@
 #include "acquire_data.h"
 
 // Note: check the state using (e.g.): if (dataCheckboxes->raw_data) {}
-struct dataOuputOpts {
+struct dataOutputOpts {
   int raw_data;
-  int fft_data;
-  int conv_data;
+  int pn_fft_data;
   int final_data;
   const char *fname;
   const char *data_dir;

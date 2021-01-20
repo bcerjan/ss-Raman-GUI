@@ -8,7 +8,7 @@ struct dataAcqParams {
   int measurement_reps; // in #
   int mod_freq; // in Hz
   int pn_bit_length; // Length of pn code
-  struct dataOuputOpts *outputPtr;
+  struct dataOutputOpts *outputPtr;
   GtkWidget *progressBar;
   int timeoutID;
   int timeoutInterval;

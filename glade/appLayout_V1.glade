@@ -490,8 +490,8 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkCheckButton" id="fft_data_save">
-                    <property name="label" translatable="yes">Save FFT'd Data</property>
+                  <object class="GtkCheckButton" id="pn_fft_data_save">
+                    <property name="label" translatable="yes">Save PN FFT Data</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">False</property>
@@ -501,20 +501,6 @@
                     <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkCheckButton" id="conv_data_save">
-                    <property name="label" translatable="yes">Save Convoluted Data</property>
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="receives-default">False</property>
-                    <property name="draw-indicator">True</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">2</property>
                   </packing>
                 </child>
                 <child>
