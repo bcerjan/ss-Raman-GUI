@@ -42,6 +42,7 @@ typedef struct {
   GtkWidget *spectrometer_dialog;
   GtkWidget *progressBar;
   GtkWidget *scan_btn;
+  //Wrapper *spectrometerWrapper;
 } userInputWidgets; // Don't love using a typedef here...
                     // Seems to be required to use g_slice_new()
 
@@ -77,9 +78,19 @@ void on_function_generator_dialog_btn_clicked(GtkWidget *popup)
 }
 
 // Re-scan for spectrometers:
-void spectrometer_scan_clicked_cb()
+void spectrometer_scan_clicked_cb(GtkButton *self,
+                                  userInputWidgets *uiWidgets)
 {
   g_print("Spectrometer_scan clicked\n");
+  /*
+  numberOfSpectrometers = uiWidgets->spectrometerWrapper.openAllSpectrometers();
+  // Check if this should be from 1 or from 0...
+  for (i = 1; i < numberOfSpectrometers + 1; i++) {
+    char *name = wrapper.getName(i);
+    char *id = uiWidgets->spectrometerWrapper.getSerialNumber(i);
+    gtk_combo_box_text_append(GTK_COMBO_BOX(spectrometer_comboBox), id, name);
+  }
+  */
 }
 
 // Close error dialog when no spectrometers selected:
@@ -137,7 +148,7 @@ void scan_button_clicked_cb(GtkButton *button,
     // Get number of measurements we want to do right now:
     int measurement_reps;
     measurement_reps = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(uiWidgets->num_meas_entry));
-
+g_print("Getting file information...\n");
     // Filename and directory for data output
     const char *data_dir;
     data_dir = gtk_file_chooser_get_uri(GTK_FILE_CHOOSER(uiWidgets->data_dir_entry));
