@@ -21,11 +21,12 @@ void output_data(int numPixels,
                  int iteration,
                  struct dataAcqParams *params)
 {
+g_print("Outputting data...\n");
   int i;
   // Get the information about which outputs / where they should go:
   struct dataOutputOpts *outputPtr = params->outputPtr;
-  const char *baseFname = params->outputPtr->fname;
-  const gchar *data_dir = params->outputPtr->data_dir;
+  const char *baseFname = outputPtr->fname;
+  const gchar *data_dir = outputPtr->data_dir;
   gchar *basePath = g_strjoin("/", data_dir, baseFname, NULL);
   gchar headerLines[500];
   sprintf(headerLines,
@@ -76,16 +77,19 @@ g_print("\n");
   if (outputPtr->final_data) {
     gchar iterText[10];
     sprintf(iterText, "%d", iteration);
-    gchar *fullPath = g_strjoin(NULL, basePath, "_final_", iterText, NULL);
+    gchar *fullPath = g_strjoin(NULL, basePath, "_final_", iterText, ".txt", NULL);
+    g_print(fullPath);
     FILE *outFile;
     outFile = fopen(fullPath, "w");
     fprintf(outFile, headerLines);
 
     for (i = 0; i < numPixels; i++) {
-      double value = pixelValues[i] * pn_interp_fft[i]; // point-wise multiplication
+      //double value = pixelValues[i] * pn_interp_fft[i]; // point-wise multiplication
+      double value = pixelValues[i];
       write_line(outFile, wavelengths[i], value);
     }
     g_free(basePath);
+    //g_free(data_dir);
     fclose(outFile);
   }
 
