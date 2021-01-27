@@ -61,7 +61,8 @@ g_print("\n");
   // Output our interpolated PN FFT
   if (outputPtr->pn_fft_data && iteration == 0) {
     // Only output this once, as it's constant as a function of iteration
-    gchar *fullPath = g_strjoin(NULL, basePath, "_pn_fft", NULL);
+    gchar *fullURI = g_strjoin(NULL, basePath, "_pn_fft.txt", NULL);
+    gchar *fullPath = g_filename_from_uri(fullURI, NULL, NULL);
     FILE *outFile;
     outFile = fopen(fullPath, "w");
     fprintf(outFile, headerLines);
@@ -69,27 +70,29 @@ g_print("\n");
     for (i = 0; i < numPixels; i++) {
       write_line(outFile, wavelengths[i], pn_interp_fft[i]);
     }
-    g_free(basePath);
+
     fclose(outFile);
+    g_free(fullPath);
+    g_free(fullURI);
   }
 
   // Output the point-wise multiplication of spectrum and PN FFT
   if (outputPtr->final_data) {
     gchar iterText[10];
     sprintf(iterText, "%d", iteration);
-    gchar *fullPath = g_strjoin(NULL, basePath, "_final_", iterText, ".txt", NULL);
-    g_print(fullPath);
+    gchar *fullURI = g_strjoin(NULL, basePath, "_final_", iterText, ".txt", NULL);
+    gchar *fullPath = g_filename_from_uri(fullURI, NULL, NULL);
+
     FILE *outFile;
     outFile = fopen(fullPath, "w");
     fprintf(outFile, headerLines);
 
     for (i = 0; i < numPixels; i++) {
-      //double value = pixelValues[i] * pn_interp_fft[i]; // point-wise multiplication
-      double value = pixelValues[i];
+      double value = pixelValues[i] * pn_interp_fft[i]; // point-wise multiplication
       write_line(outFile, wavelengths[i], value);
     }
-    g_free(basePath);
-    //g_free(data_dir);
+    g_free(fullPath);
+    g_free(fullURI);
     fclose(outFile);
   }
 
