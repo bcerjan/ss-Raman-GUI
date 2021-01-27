@@ -46,6 +46,18 @@ typedef struct {
 } userInputWidgets; // Don't love using a typedef here...
                     // Seems to be required to use g_slice_new()
 
+// Function to get default folder for data output
+const char * get_default_folder_uri()
+{
+  g_print("Nothing selected!\n");
+  const char *default_dir = "../output";
+  const char *current_dir = g_get_current_dir();
+  char *full_dir = g_strjoin("/", current_dir, default_dir, NULL);
+  const char *uri = g_filename_to_uri(full_dir, NULL, NULL);
+  g_free(full_dir);
+  return uri;
+}
+
 // Both the "X" button and File->Quit should end the process
 void on_window_main_destroy()
 {
@@ -149,12 +161,23 @@ void scan_button_clicked_cb(GtkButton *button,
     int measurement_reps;
     measurement_reps = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(uiWidgets->num_meas_entry));
 g_print("Getting file information...\n");
+
     // Filename and directory for data output
     const char *data_dir;
     data_dir = gtk_file_chooser_get_uri(GTK_FILE_CHOOSER(uiWidgets->data_dir_entry));
 
-    const char *fname;
-    fname = gtk_entry_get_text(GTK_ENTRY(uiWidgets->data_fname_entry));
+    if (!data_dir) {
+      // Nothing selected, so set it to our default:
+      data_dir = get_default_folder_uri();
+    }
+
+    const char *input_fname, *fname;
+    input_fname = gtk_entry_get_text(GTK_ENTRY(uiWidgets->data_fname_entry));
+
+    if (strlen(input_fname) < 1) {
+      // Set to defualt filename:
+      fname = "data";
+    }
 
     // Prepare struct of output options (which data, where it goes)
     struct dataOutputOpts *outputPtr = g_malloc(sizeof(*outputPtr));
@@ -300,6 +323,9 @@ int main(int    argc,
   uiWidgets->progressBar = GTK_WIDGET(gtk_builder_get_object(builder, "scan_progress_bar"));
   uiWidgets->scan_btn = GTK_WIDGET(gtk_builder_get_object(builder, "scan_button"));
 
+  // Put in default folder for data output:
+  gtk_file_chooser_select_uri(GTK_FILE_CHOOSER(uiWidgets->data_dir_entry),
+                              get_default_folder_uri());
 
   // Alter lists of modulation frequencies and pn bit length based on details in
   // measurement_params.h
