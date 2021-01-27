@@ -63,6 +63,9 @@ include/fftw/
 include/wavepond/
 include/gtk
 
+# Data output directory:
+output/*
+
 # Testing files in src:
 src/test.*
 
