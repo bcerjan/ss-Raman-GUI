@@ -44,6 +44,7 @@ SET (COMMON_SRCS
 
 SET (TEST_SRCS
   ${MAIN_SRC_DIR}/test.c
+  ${MAIN_SRC_DIR}/waveform_gen.c
 )
 
 # Subdirectory for generator:
@@ -70,6 +71,7 @@ TARGET_LINK_LIBRARIES(test PUBLIC ${GTK_LIBRARIES})
 
 # And waveform generator:
 TARGET_LINK_LIBRARIES(app PUBLIC ${DAX_LIB})
+TARGET_LINK_LIBRARIES(test PUBLIC ${DAX_LIB})
 
 # Add math library:
 TARGET_LINK_LIBRARIES(app PUBLIC m)
