@@ -9,7 +9,7 @@
 #include "complex.h"
 #include "fftw3.h"
 
-static int isamps_per_bit = 512; // Number of samples per bit in PN.
+const static int isamps_per_bit = 512; // Number of samples per bit in PN.
                                  // Keep as power of 2 to make FFT fast
                                  // Sort of arbitrary, but some testing in
                                  // MATLAB indicates this should be plenty

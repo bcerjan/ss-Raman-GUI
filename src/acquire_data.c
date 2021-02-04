@@ -17,13 +17,12 @@ as needed (automatically naming files for multiple runs)
 //#include "API INFO HERE"
 //#include "ArrayTypes.h"
 
-// FFTW header file:
-//#include "fftw3.h"
 
 // Data output header file, contains struct definition
 #include "data_output.h"
 #include "acquire_data.h"
 #include "fft_functions.h"
+#include "waveform_gen.h"
 
 // PN code header:
 #include "pn_code.h"
@@ -232,7 +231,7 @@ int data_acq(struct dataAcqParams *data)
   //g_free(pixelValues);
   //g_free(wavelengths);
   //g_free(frequencies);
-
+  stop_wvfm_gen();
 
   return 0;
 }
