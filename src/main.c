@@ -149,7 +149,7 @@ void scan_button_clicked_cb(GtkButton *button,
     mod_freq = mod_freqs[mod_freq_ind];
 
     // Start the waveform generator:
-    //start_wvfm_gen(pn_bit_len, mod_freq);
+    start_wvfm_gen(pn_bit_len, mod_freq);
 
     //printf("Number of pn_repetitions = %d\n", pn_repetitions);
 
@@ -246,7 +246,7 @@ g_print("About to start async...\n");
     const char *text = "Start Scan";
     gtk_button_set_label(button, text);
     //g_free(text);
-    //stop_wvfm_gen();
+    stop_wvfm_gen();
     //stop_data_acq(worker_params);
     g_cancellable_cancel(cancellable);
     //WAIT FOR SCAN TO FINISH!!!!
@@ -396,7 +396,7 @@ int main(int    argc,
 
   // TODO: Add turn-off of spectrometers / function generator here
   //wrapper.closeAllSpectrometers(); // Turns off all spectrometers
-  //stop_wvfm_gen();
+  stop_wvfm_gen();
 
   return 0;
 }
