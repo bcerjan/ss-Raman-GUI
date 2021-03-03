@@ -5,14 +5,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 
-//#include <pthread.h>
 
 // Header files for the waveform generator ("wavepond")
 #include "dax22000_lib_DLL64.h"
 
 // Header files for Ocean Inisght Spectrometer
-//#include "API INFO HERE"
+#include "api/seabreezeapi/SeaBreezeAPI.h"
 
 // Headers from this project:
 #include "data_output.h"
@@ -42,7 +42,6 @@ typedef struct {
   GtkWidget *spectrometer_dialog;
   GtkWidget *progressBar;
   GtkWidget *scan_btn;
-  //Wrapper *spectrometerWrapper;
 } userInputWidgets; // Don't love using a typedef here...
                     // Seems to be required to use g_slice_new()
 
@@ -94,15 +93,25 @@ void spectrometer_scan_clicked_cb(GtkButton *self,
                                   userInputWidgets *uiWidgets)
 {
   g_print("Spectrometer_scan clicked\n");
-  /*
-  numberOfSpectrometers = uiWidgets->spectrometerWrapper.openAllSpectrometers();
-  // Check if this should be from 1 or from 0...
-  for (i = 1; i < numberOfSpectrometers + 1; i++) {
-    char *name = wrapper.getName(i);
-    char *id = uiWidgets->spectrometerWrapper.getSerialNumber(i);
-    gtk_combo_box_text_append(GTK_COMBO_BOX(spectrometer_comboBox), id, name);
+
+  int numberOfSpectrometers,i;
+  long *spectrometerIds;
+  sbapi_probe_devices();
+
+  numberOfSpectrometers = sbapi_get_number_of_device_ids();
+
+  spectrometerIds = g_malloc0(numberOfSpectrometers * sizeof(spectrometerIds) );
+  numberOfSpectrometers = sbapi_get_device_ids(spectrometerIds, numberOfSpectrometers);
+
+  // Add all spectrometers to the selection list:
+  for (i = 0; i < numberOfSpectrometers; i++) {
+    gchar nameBuf[80];
+    gchar *id;
+    sprintf(id, "0x%02lx", spectrometerIds[i]);
+    sbapi_get_device_type(spectrometerIds[i], NULL, nameBuf, 79);
+    gtk_combo_box_text_append(
+      GTK_COMBO_BOX_TEXT(uiWidgets->spectrometer_comboBox), id, nameBuf);
   }
-  */
 }
 
 // Close error dialog when no spectrometers selected:
@@ -116,26 +125,38 @@ void scan_button_clicked_cb(GtkButton *button,
 {
   g_print("scan_button clicked\n");
   const char *cur_text = gtk_button_get_label(button);
-  //g_print(cur_text);
 
-  if (g_strcmp0("Start Scan", cur_text) == 0) { // We are not currently running a scan
-    // Check this first to make sure this scan has a spectrometer selected
-    // Set up our spectrometer:
+  if (g_strcmp0("Start Scan", cur_text) == 0) {
+    // We are not currently running a scan
+
+    //=======================================================
+    // first check to make sure this scan has a spectrometer selected
     int spectrometerIndex;
-    spectrometerIndex = gtk_combo_box_get_active(GTK_COMBO_BOX(uiWidgets->spectrometer_comboBox)) - 1; // Offset by 1 to account for our note in the box
-    /*if (spectrometerIndex < 0) {
-      gtk_widget_show(uiWidgets->spectrometer_dialog);
-      return;
-    }*/
 
+    spectrometerIndex = gtk_combo_box_get_active(GTK_COMBO_BOX(uiWidgets->spectrometer_comboBox)) - 1; // Offset by 1 to account for our note in the box
+    if (spectrometerIndex < 0) {
+      gtk_widget_show(uiWidgets->spectrometer_dialog);
+      return; // leave if we don't
+    }
+    const gchar *spectrometerIdText =
+      gtk_combo_box_get_active_id(
+        GTK_COMBO_BOX(uiWidgets->spectrometer_comboBox)
+      );
+    long spectrometerId = strtol(spectrometerIdText, NULL, 0);
+printf("Spec. ID is: %ld", spectrometerId);
+g_print("\n");
+return;
+
+    //========================================================
     // Initialize our cancellable object:
     cancellable = g_cancellable_new();
 
+    // Update text on button:
     const char *text = "Stop Scan";
     gtk_button_set_label(button, text);
-    //g_free(text);
 
-    // Prepare to start wafeform generation:x
+    //========================================================
+    // Prepare to start wafeform generation:
     int pn_bit_len;
     // Get number of bits in our pseudorandom noise sequence
     // entry 0 is 32 and they multiply by power of two after that, this works
@@ -153,15 +174,18 @@ void scan_button_clicked_cb(GtkButton *button,
 
     //printf("Number of pn_repetitions = %d\n", pn_repetitions);
 
-    // Note that minimum integration time is 8 ms
-    int integrationTime = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(uiWidgets->integration_time_entry)); // milliseconds
 
+    //===========================================================
+    // Get spectral acquisition parameters
+    // Note that minimum integration time is 10 ms for our spectrometer
+    int integrationTime = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(uiWidgets->integration_time_entry)); // milliseconds
 
     // Get number of measurements we want to do right now:
     int measurement_reps;
     measurement_reps = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(uiWidgets->num_meas_entry));
 g_print("Getting file information...\n");
 
+    //============================================================
     // Filename and directory for data output
     const char *data_dir;
     data_dir = gtk_file_chooser_get_uri(GTK_FILE_CHOOSER(uiWidgets->data_dir_entry));
@@ -177,6 +201,8 @@ g_print("Getting file information...\n");
     if (strlen(input_fname) < 1) {
       // Set to defualt filename:
       fname = "data";
+    } else {
+      fname = input_fname;
     }
 
     // Prepare struct of output options (which data, where it goes)
@@ -188,9 +214,7 @@ g_print("Getting file information...\n");
     outputPtr->fname = fname;
     outputPtr->data_dir = data_dir;
 
-    //g_free(data_dir);
-    //g_free(fname);
-
+    //====================================================================
     // Now we're preparing to call our worker thread to take a measurement
     GtkWidget *progressBar = uiWidgets->progressBar;
     GtkWidget *scan_btn = uiWidgets->scan_btn;
@@ -202,7 +226,7 @@ g_print("Getting file information...\n");
     int timeoutInterval = 100; // ms
     struct dataAcqParams *params = g_malloc(sizeof(*params));
 
-    params->spectrometerIndex = spectrometerIndex;
+    params->spectrometerId = spectrometerId;
     params->integrationTime = integrationTime;
     params->measurement_reps = measurement_reps;
     params->mod_freq = mod_freq;
@@ -213,19 +237,13 @@ g_print("Getting file information...\n");
     params->timeoutInterval = timeoutInterval;
     params->cancellable = cancellable;
     params->scan_btn = scan_btn;
-    //params->self = params;
-
-    //params->spectrometerWrapper = uiWidgets->spectrometerWrapper;
-
 
     // Start updating the progress bar:
     params->timeoutID = gdk_threads_add_timeout(timeoutInterval, progressBar_timeout_cb,
                                         params);
 
-//printf("Btn Pointer Initial: %p\n", params->scan_btn);
-    // Store pointer to params so we can free it later if we need to:
-    //worker_params = params;
 
+    //=========================================================
     // Begin the acquisition
     // This does many things -- it records data (updating the progress bar),
     // processes that data, and outputs it (at the appropriate step(s)) as
@@ -233,27 +251,28 @@ g_print("Getting file information...\n");
 
 g_print("About to start async...\n");
 
-
     start_data_acq_async(params, cancellable, NULL, NULL);
 
     // Stop the waveform generator:
-    //stop_wvfm_gen();
-    //g_free(outputPtr);
-    //g_free(params);
+    stop_wvfm_gen();
+
+    free(outputPtr);
+    free(params);
 
   } else {
     //scan_running = 0;
     const char *text = "Start Scan";
     gtk_button_set_label(button, text);
-    //g_free(text);
+
+    // Turn off function generator
     stop_wvfm_gen();
-    //stop_data_acq(worker_params);
+
+    // Cancel our worker thread
     g_cancellable_cancel(cancellable);
     //WAIT FOR SCAN TO FINISH!!!!
     //clear_data(); // If needed
   }
 
-  //g_free(cur_text);
 }
 
 // Someone wants to see the help documentation
@@ -278,6 +297,7 @@ void on_help_help_activate(GtkWidget *self)
 int main(int    argc,
          char **argv)
 {
+  //==========================================================
   // Initialize GTK:
   gtk_init(&argc, &argv);
 
@@ -306,6 +326,10 @@ int main(int    argc,
 
   // And get our dialog:
   dialog = GTK_WIDGET(gtk_builder_get_object(builder, "function_generator_dialog"));
+
+  // Text box to hold spectrometer info
+  spectrometer_comboBox = GTK_WIDGET(gtk_builder_get_object(builder, "spectrometer_select"));
+
 
   // All of the widgets that we need to read from later on:
 
@@ -355,35 +379,48 @@ int main(int    argc,
   // Dereference builder as its job is done:
   g_object_unref(builder);
 
+  //======================================================
   // Set up waveform generator:
   DWORD NumCards = 0;
   NumCards = DAx22000_GetNumCards();
   printf("Number of Cards = %ld\n", NumCards);
-  /*if (NumCards == 0) {
+  if (NumCards == 0) {
     gtk_widget_show(dialog);
-  }*/
+  }
+
+  //=======================================================
+  // initialize spectrometer API:
+  sbapi_initialize();
 
   // Scan for spectrometer(s)
-  /*
-  Wrapper wrapper; // wrapper for spectrometer
-  uiWidgets->spectrometerWrapper = wrapper; // We need to pass this everywhere. We'll need to adjust the struct when that makes sense.
   int numberOfSpectrometers,i;
+  long *spectrometerIds;
+  sbapi_probe_devices();
 
-  numberOfSpectrometers = wrapper.openAllSpectrometers();
+  numberOfSpectrometers = sbapi_get_number_of_device_ids();
+
+  spectrometerIds = g_malloc0(numberOfSpectrometers * sizeof(spectrometerIds) );
+  numberOfSpectrometers = sbapi_get_device_ids(spectrometerIds, numberOfSpectrometers);
+
   if (numberOfSpectrometers < 0) {
-    wrapper.getLastException();
-    // g_print or something here, maybe exit()...
+    // show a dialog or something
   }
 
   // Add all spectrometers to the selection list:
-
-  // Check if this should be from 1 or from 0...
-  for (i = 1; i < numberOfSpectrometers + 1; i++) {
-    char *name = wrapper.getName(i);
-    char *id = wrapper.getSerialNumber(i);
-    gtk_combo_box_text_append(GTK_COMBO_BOX(spectrometer_comboBox), id, name);
+  for (i = 0; i < numberOfSpectrometers; i++) {
+    gchar nameBuf[80];
+    gchar id[10];
+    sprintf(id, "0x%02lx", spectrometerIds[i]);
+    sbapi_get_device_type(spectrometerIds[i], NULL, nameBuf, 79);
+    gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(spectrometer_comboBox), id, nameBuf);
   }
-  */
+
+  g_free(spectrometerIds);
+  // END OF INITIALIZATION
+
+  //==========================================================
+  //================== MAIN LOOP STARTS HERE =================
+  //==========================================================
 
   // Show the main window:
   gtk_widget_show(window);
@@ -391,12 +428,10 @@ int main(int    argc,
   // Run the main loop:
   gtk_main();
 
-  //g_object_unref(dialog);
   g_slice_free(userInputWidgets, uiWidgets);
 
-  // TODO: Add turn-off of spectrometers / function generator here
-  //wrapper.closeAllSpectrometers(); // Turns off all spectrometers
-  stop_wvfm_gen();
+  sbapi_shutdown(); // frees memory for spectrometers
+  stop_wvfm_gen(); // Turns off output from the generator
 
   return 0;
 }
