@@ -1,5 +1,5 @@
 # Project Name and language:
-PROJECT(ss-sers-control LANGUAGES C)
+PROJECT(ss-sers-control)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.19)
 
@@ -19,16 +19,19 @@ FIND_PACKAGE(Threads REQUIRED)
 
 # Include header files from include directories
 SET(MAIN_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
+
 INCLUDE_DIRECTORIES(
   ${GTK_INCLUDE_DIRS}
   #${MAIN_INCLUDE_DIR}/fftw
   ${MAIN_INCLUDE_DIR}/wavepond
   ${MAIN_INCLUDE_DIR}/app
+  ${MAIN_INCLUDE_DIR}/seabreeze
 )
 
 # Add libraries
 SET(MAIN_LIBRARY_DIR "${CMAKE_SOURCE_DIR}/lib")
 find_library(DAX_LIB dax22000_lib_DLL64 HINTS ${MAIN_LIBRARY_DIR}/wavepond)
+FIND_LIBRARY(SEABREEZE_LIB NAMES seabreeze HINTS ${MAIN_LIBRARY_DIR}/seabreeze)
 
 
 # Source Files:
@@ -44,7 +47,6 @@ SET (COMMON_SRCS
 
 SET (TEST_SRCS
   ${MAIN_SRC_DIR}/test.c
-  ${MAIN_SRC_DIR}/waveform_gen.c
 )
 
 # Subdirectory for generator:
@@ -63,7 +65,7 @@ TARGET_LINK_OPTIONS(test PUBLIC ${GCC_DYNAMIC_LINK_FLAGS})
 
 # Turn on more warnings:
 TARGET_COMPILE_OPTIONS(app PRIVATE -Wall)
-TARGET_COMPILE_OPTIONS(test PRIVATE -Wall)
+TARGET_COMPILE_OPTIONS(test PRIVATE -Wall -D _WINDOWS)
 
 # Link GTK to the target:
 TARGET_LINK_LIBRARIES(app PUBLIC ${GTK_LIBRARIES})
@@ -72,6 +74,10 @@ TARGET_LINK_LIBRARIES(test PUBLIC ${GTK_LIBRARIES})
 # And waveform generator:
 TARGET_LINK_LIBRARIES(app PUBLIC ${DAX_LIB})
 TARGET_LINK_LIBRARIES(test PUBLIC ${DAX_LIB})
+
+# And the SeaBreeze Library:
+TARGET_LINK_LIBRARIES(app PUBLIC ${SEABREEZE_LIB})
+TARGET_LINK_LIBRARIES(test PUBLIC ${SEABREEZE_LIB})
 
 # Add math library:
 TARGET_LINK_LIBRARIES(app PUBLIC m)
