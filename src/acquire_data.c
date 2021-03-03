@@ -94,7 +94,7 @@ int data_acq(struct dataAcqParams *data)
   int i;
   int integrationTime = params->integrationTime;
   int measurement_reps = params->measurement_reps;
-  int spectrometerIndex = params->spectrometerIndex;
+  long spectrometerId = params->spectrometerId;
   int mod_freq = params->mod_freq;
   int pn_bit_len = params->pn_bit_length;
 

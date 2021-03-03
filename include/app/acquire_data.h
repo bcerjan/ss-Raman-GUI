@@ -3,17 +3,16 @@
 #define ACQUIRE_DATA
 
 struct dataAcqParams {
-  int spectrometerIndex;
+  long spectrometerId;
   int integrationTime; // in ms
   int measurement_reps; // in #
-  int mod_freq; // in Hz
+  int mod_freq; // in MHz
   int pn_bit_length; // Length of pn code
   struct dataOutputOpts *outputPtr;
   GtkWidget *progressBar;
   int timeoutID;
   int timeoutInterval;
   GtkWidget *scan_btn; // Start/Stop button
-  //struct dataAcqParams *self; // So we can free our struct from a thread
   GCancellable *cancellable;
 };
 
