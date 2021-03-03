@@ -61,7 +61,7 @@ build/
 # Other people's header files:
 include/fftw/
 include/wavepond/
-include/gtk
+include/seabreeze
 
 # Data output directory:
 output/*
@@ -73,7 +73,7 @@ src/test.*
 *.def
 
 # Other libraries:
-lib/fftw/*
+lib/omnidriver/*
 
 # Overview notes, which should eventually be moved to issue tracking / README
 # on GitHub
