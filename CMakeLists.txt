@@ -1,5 +1,5 @@
 # Project Name and language:
-PROJECT(ss-sers-control)
+PROJECT(ss-sers-control LANGUAGES C)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 3.19)
 
@@ -49,14 +49,12 @@ SET (TEST_SRCS
   ${MAIN_SRC_DIR}/test.c
 )
 
-# Subdirectory for generator:
-ADD_SUBDIRECTORY(${CMAKE_SOURCE_DIR}/generators)
 
 # Put our executable in the root directory:
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
 # Add our executable:
-ADD_EXECUTABLE(app ${COMMON_SRCS} pn_code.h)
+ADD_EXECUTABLE(app ${COMMON_SRCS})
 ADD_EXECUTABLE(test ${TEST_SRCS})
 
 # Specify to use our custom linker flags:
