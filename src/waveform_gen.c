@@ -1,4 +1,6 @@
 // File for generation of waveforms from a Wavepond generator
+// This is the only file you need to change if you alter your waveform generator
+// (e.g. to a different model or whatever)
 
 #include <gtk/gtk.h>
 #include <stdbool.h>
@@ -14,6 +16,15 @@
 // single location
 static const DWORD CardNum = 1; // Fixed, we only have 1 card
 static const DWORD Chan = 1; // Fixed, our card only has one channel
+
+// Function to count how many waveform generators are attached
+unsigned long count_wvfm_gen()
+{
+  DWORD NumCards;
+  NumCards = DAx22000_GetNumCards();
+  printf("Number of Cards = %ld\n", NumCards);
+  return NumCards;
+}
 
 void start_wvfm_gen(int pn_bit_len, int mod_freq)
 {
