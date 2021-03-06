@@ -7,18 +7,15 @@
 #include <stdbool.h>
 #include <string.h>
 
-
-// Header files for the waveform generator ("wavepond")
-#include "dax22000_lib_DLL64.h"
-
 // Header files for Ocean Inisght Spectrometer
-#include "api/seabreezeapi/SeaBreezeAPI.h"
+//#include "api/seabreezeapi/SeaBreezeAPI.h"
 
 // Headers from this project:
 #include "data_output.h"
 #include "waveform_gen.h"
 #include "acquire_data.h"
 #include "measurement_params.h"
+#include "spectrometer_functions.h"
 
 // Variable to track if we're currently running a scan or not:
 //static int scan_running = 0;
@@ -80,8 +77,8 @@ void on_function_generator_dialog_quit_clicked()
 // Re-scan for the waveform generator:
 void on_function_generator_dialog_btn_clicked(GtkWidget *popup)
 {
-  DWORD NumCards = 0;
-  NumCards = DAx22000_GetNumCards();
+  unsigned long NumCards = 0;
+  NumCards = count_wvfm_gen();
   // Close the dialog if we found a card, if not do nothing.
   if (NumCards == 1) {
     gtk_widget_hide(popup);
@@ -94,21 +91,35 @@ void spectrometer_scan_clicked_cb(GtkButton *self,
 {
   g_print("Spectrometer_scan clicked\n");
 
+  // First clear list if it already contains anything:
+  gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(uiWidgets->spectrometer_comboBox));
+
+  // Then re-add our initial line:
+  gtk_combo_box_text_append(
+    GTK_COMBO_BOX_TEXT(uiWidgets->spectrometer_comboBox), NULL,
+      "<Please Select a Spectrometer>");
+
+  gtk_combo_box_set_active(GTK_COMBO_BOX(uiWidgets->spectrometer_comboBox), 0);
+  
+  // Scan for spectrometer(s)
   int numberOfSpectrometers,i;
   long *spectrometerIds;
-  sbapi_probe_devices();
 
-  numberOfSpectrometers = sbapi_get_number_of_device_ids();
+  numberOfSpectrometers = count_spectrometers();
 
-  spectrometerIds = g_malloc0(numberOfSpectrometers * sizeof(spectrometerIds) );
-  numberOfSpectrometers = sbapi_get_device_ids(spectrometerIds, numberOfSpectrometers);
+  spectrometerIds = g_malloc0(numberOfSpectrometers * sizeof(spectrometerIds));
+  numberOfSpectrometers = get_spectrometer_ids(spectrometerIds, numberOfSpectrometers);
+
+  if (numberOfSpectrometers < 0) {
+    // show a dialog or something
+  }
 
   // Add all spectrometers to the selection list:
   for (i = 0; i < numberOfSpectrometers; i++) {
-    gchar nameBuf[80];
-    gchar *id;
+    gchar nameBuf[MAX_SPEC_NAME_LEN];
+    gchar id[10];
     sprintf(id, "0x%02lx", spectrometerIds[i]);
-    sbapi_get_device_type(spectrometerIds[i], NULL, nameBuf, 79);
+    get_spectrometer_name(spectrometerIds[i], nameBuf);
     gtk_combo_box_text_append(
       GTK_COMBO_BOX_TEXT(uiWidgets->spectrometer_comboBox), id, nameBuf);
   }
@@ -145,7 +156,7 @@ void scan_button_clicked_cb(GtkButton *button,
     long spectrometerId = strtol(spectrometerIdText, NULL, 0);
 printf("Spec. ID is: %ld", spectrometerId);
 g_print("\n");
-return;
+
 
     //========================================================
     // Initialize our cancellable object:
@@ -248,6 +259,8 @@ g_print("Getting file information...\n");
     // This does many things -- it records data (updating the progress bar),
     // processes that data, and outputs it (at the appropriate step(s)) as
     // requested.
+    //
+    // It also handles freeing the data in params and outputPtr
 
 g_print("About to start async...\n");
 
@@ -255,9 +268,6 @@ g_print("About to start async...\n");
 
     // Stop the waveform generator:
     stop_wvfm_gen();
-
-    free(outputPtr);
-    free(params);
 
   } else {
     //scan_running = 0;
@@ -381,8 +391,8 @@ int main(int    argc,
 
   //======================================================
   // Set up waveform generator:
-  DWORD NumCards = 0;
-  NumCards = DAx22000_GetNumCards();
+  unsigned long NumCards = 0;
+  NumCards = count_wvfm_gen();
   printf("Number of Cards = %ld\n", NumCards);
   if (NumCards == 0) {
     gtk_widget_show(dialog);
@@ -390,17 +400,16 @@ int main(int    argc,
 
   //=======================================================
   // initialize spectrometer API:
-  sbapi_initialize();
+  initialize_spectrometer_api();
 
   // Scan for spectrometer(s)
   int numberOfSpectrometers,i;
   long *spectrometerIds;
-  sbapi_probe_devices();
 
-  numberOfSpectrometers = sbapi_get_number_of_device_ids();
+  numberOfSpectrometers = count_spectrometers();
 
-  spectrometerIds = g_malloc0(numberOfSpectrometers * sizeof(spectrometerIds) );
-  numberOfSpectrometers = sbapi_get_device_ids(spectrometerIds, numberOfSpectrometers);
+  spectrometerIds = g_malloc0(numberOfSpectrometers * sizeof(spectrometerIds));
+  numberOfSpectrometers = get_spectrometer_ids(spectrometerIds, numberOfSpectrometers);
 
   if (numberOfSpectrometers < 0) {
     // show a dialog or something
@@ -408,10 +417,10 @@ int main(int    argc,
 
   // Add all spectrometers to the selection list:
   for (i = 0; i < numberOfSpectrometers; i++) {
-    gchar nameBuf[80];
+    gchar nameBuf[MAX_SPEC_NAME_LEN];
     gchar id[10];
     sprintf(id, "0x%02lx", spectrometerIds[i]);
-    sbapi_get_device_type(spectrometerIds[i], NULL, nameBuf, 79);
+    get_spectrometer_name(spectrometerIds[i], nameBuf);
     gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(spectrometer_comboBox), id, nameBuf);
   }
 
@@ -430,8 +439,9 @@ int main(int    argc,
 
   g_slice_free(userInputWidgets, uiWidgets);
 
-  sbapi_shutdown(); // frees memory for spectrometers
-  stop_wvfm_gen(); // Turns off output from the generator
+  close_spectrometer();
+  shutdown_spectrometer_api(); // frees memory for spectrometers
+  stop_wvfm_gen(); // Turns off output from the generator (in case it is still running)
 
   return 0;
 }
