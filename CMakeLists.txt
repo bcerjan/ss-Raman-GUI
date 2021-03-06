@@ -43,10 +43,12 @@ SET (COMMON_SRCS
   ${MAIN_SRC_DIR}/acquire_data.c
   ${MAIN_SRC_DIR}/data_output.c
   ${MAIN_SRC_DIR}/fft_functions.c
+  ${MAIN_SRC_DIR}/spectrometer_functions.c
 )
 
 SET (TEST_SRCS
   ${MAIN_SRC_DIR}/test.c
+  ${MAIN_SRC_DIR}/spectrometer_functions.c
 )
 
 
