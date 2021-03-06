@@ -13,16 +13,13 @@ as needed (automatically naming files for multiple runs)
 #include <gtk/gtk.h>
 
 
-// Header files for Ocean Inisght Spectrometer
-//#include "API INFO HERE"
-//#include "ArrayTypes.h"
-
-
 // Data output header file, contains struct definition
 #include "data_output.h"
 #include "acquire_data.h"
 #include "fft_functions.h"
 #include "waveform_gen.h"
+#include "spectrometer_functions.h"
+#include "measurement_params.h"
 
 // PN code header:
 #include "pn_code.h"
@@ -49,6 +46,9 @@ g_print("Inside complete_progressBar...\n");
   const char *text = "Start Scan";
   gtk_button_set_label(GTK_BUTTON(params->scan_btn), text);
   timeoutLoops = 1;
+
+  g_free(params->outputPtr);
+  g_free(params);
   return G_SOURCE_REMOVE;
 }
 
@@ -79,49 +79,44 @@ int progressBar_timeout_cb(gpointer data)
   return G_SOURCE_CONTINUE; // We keep calling this until we cancel it...
 }
 
+
+// We don't really use this to avoid race condition
 void free_data_acq_data(void *data)
 {
-g_print("Freeing Data...\n");
-  struct dataAcqParams *params = data;
-  g_free(params->outputPtr);
-  g_free(params);
   timeoutLoops = 1; // Reset our loop counter for next run
+  return;
 }
 
 int data_acq(struct dataAcqParams *data)
 {
   struct dataAcqParams *params = data;
-  int i;
+  int i, numPixels;
   int integrationTime = params->integrationTime;
   int measurement_reps = params->measurement_reps;
   long spectrometerId = params->spectrometerId;
   int mod_freq = params->mod_freq;
   int pn_bit_len = params->pn_bit_length;
 
-  //double speedC = 2.99792458e17; // In nm/sec
+  double speedC = 2.99792458e17; // In nm/sec
+  double *wavelengths, *frequencies, *values;
 
   // Set up initial data from the spectrometer:
-  //Wrapper *wrapper = params->spectrometerWrapper; // Maybe not correct...
-  int numberOfPixels = 10; // For testing, hard code all of these
-  double wavelengths[10] = {0.0};
-  double frequencies[10] = {0.0};
-  double pixelValues[10] = {0.0};
-  wavelengths[3] = 3.14;
-  pixelValues[6] = 8.22;
-  //double *wavelengths, *frequencies;
-  //DoubleArray pixelArray; // Storage for data from the spectrometer
+  open_spectrometer(spectrometerId); // this prepares static data as well for calibration(s)
+  numPixels = count_spectrometer_pixels(); // Find out how big our data set will be
 
-  // Get wavelengths that our data will use:
-  //pixelArray = wrapper.getSpectrum(spectrometerIndex); // This should be very fast as integration time is 10 ms, and we don't care about the actual data
-  //wavelengths = wrapper.getWavelengths(spectrometerIndex); // (nm????) Not totally sure this will work...
-  // need to get number of wavelengths here somehow...
-  // numberOfPixels = pixelArray.getLength(); // Would be better if we could get length from wavelengths variable rather than running a scan like this...
+  wavelengths = g_malloc0(numPixels * sizeof(wavelengths));
+  frequencies = g_malloc0(numPixels * sizeof(frequencies));
+  values = g_malloc0(numPixels * sizeof(values));
 
-  // Convert from nm to Hz (assuming it's in nm...)
-  /*for (i = 0; i < numberOfPixels; i++) {
-    // Assuming wavlenghts are in nm for the moment:
-    frequencies[i] = speedC / wavelengths[numberOfPixels - 1 - i]; // Need to reorder to be from 0 -> MaxFreq instead of the opposite
-  }*/
+  get_wavelengths(wavelengths);
+
+  // Convert from nm to frequency shift (in Hz)
+  for (i = 0; i < numPixels; i++) {
+    // Assuming wavlengths are in nm:
+    //frequencies[i] = speedC / wavelengths[numPixels - 1 - i]; // Need to reorder to be from 0 -> MaxFreq instead of the opposite
+    frequencies[i] = (speedC / LASER_WAVELENGTH) - (speedC / wavelengths[i]);
+  }
+
 
   // Generate PN FFT data for multiplication (if needed)
   unsigned long int fft_length;
@@ -131,7 +126,7 @@ int data_acq(struct dataAcqParams *data)
     fft_length = calc_fft_length(pn_bit_len);
     pn_fft_freq = g_malloc0(sizeof(*pn_fft_freq) * fft_length); // As long as our output
     pn_fft_pow = g_malloc0(sizeof(*pn_fft_pow) * fft_length); // ""
-    pn_interp_fft = g_malloc0(sizeof(*pn_interp_fft) * numberOfPixels); // Same number of elements as Pixels
+    pn_interp_fft = g_malloc0(sizeof(*pn_interp_fft) * numPixels); // Same number of elements as Pixels
 
     // Get PN bits:
     int pn_bits[1024] = {0};
@@ -169,49 +164,44 @@ int data_acq(struct dataAcqParams *data)
     // This interpolates our FFT of the PN code to the same frequencies as the
     // data from the spectrometer. We do this here so it's only done once no
     // matter how many measurement repetitions we do.
-    interpolate_fft_data(numberOfPixels, frequencies, fft_length, pn_fft_freq,
+    interpolate_fft_data(numPixels, frequencies, fft_length, pn_fft_freq,
                          pn_fft_pow, pn_interp_fft);
 
     g_free(pn_fft_freq);
     g_free(pn_fft_pow);
   } /* if for final data */
 
+  // Set the integration time for the measurements:
+  set_integration_time(integrationTime);
+g_print("About to take spectra...\n");
   // Cycle for each measurement repetition:
   for (i = 0; i < measurement_reps; i++) {
     // Check if we've been cancelled:
     if (g_cancellable_is_cancelled(params->cancellable)) {
       g_source_remove(params->timeoutID); // Turn off update for progressbar
-      //wrapper.setIntegrationTime(spectrometerIndex, 10000); // Set integration time to 10 ms again
+      set_integration_time(15);
 
       // Free data that stays in this function:
-      //g_free(pn_fft);
-      //g_free(freq_fft);
+      g_free(pn_interp_fft);
+      g_free(wavelengths);
+      g_free(frequencies);
+      g_free(values);
+
+      g_free(params->outputPtr);
+      g_free(params);
+
       return 1; // Memory freeing function called automatically
     } /* if cancelled */
 
-    // For testing, sleep for the requested integration time
-    g_print("Performing a measurement...\n");
-    g_usleep(integrationTime * 10e2); // in microseconds
-    // Set integration time:
-    /*
-    wrapper.setIntegrationTime(spectrometerIndex, integrationTime*1000); // This is specified in microseconds, hence the *1000
-    // Acquire spectrum:
-    pixelArray = wrapper.getSpectrum(spectrometerIndex);
-
-    // Convert into an array of values
-    pixelValues = pixelArray.getDoubleValues();
-
-    */
+    // Take data!
+    get_spectrum(values); // This automatically applies corrections
+                          // (e.g. dark pixels and nonlinearity)
 
     // Add checking for saturated pixels???
 
     // We're now ready to process / output our data (if requested):
     // Export raw data if requested:
-    output_data(numberOfPixels, wavelengths, pixelValues, pn_interp_fft, i, params);
-
-    // Then we need to convert from wavelength to frequency (for FFT interpretation):
-
-
+    output_data(numPixels, frequencies, values, pn_interp_fft, i, params);
 
   } /* i for loop */
 
@@ -224,13 +214,12 @@ int data_acq(struct dataAcqParams *data)
   //wrapper.setIntegrationTime(spectrometerIndex, 10000); // set to 10 ms
   // If we reach here, we're done!
   gdk_threads_add_idle(complete_progressBar, params); // This also turns off the progress bar updates
-  g_usleep(500000); // Delay to prevent race condition with freeing of data...
-                    // There really should be a better method for this, but I can't tell what it is
+
 
   //free_data_acq_data(params);
-  //g_free(pixelValues);
-  //g_free(wavelengths);
-  //g_free(frequencies);
+  g_free(values);
+  g_free(wavelengths);
+  g_free(frequencies);
   stop_wvfm_gen();
 
   return 0;
