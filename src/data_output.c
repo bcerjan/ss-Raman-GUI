@@ -10,12 +10,12 @@
 // May need to adjust to longer precision...
 void write_line(FILE *filePtr, double x, double y)
 {
-  fprintf(filePtr, "%lf,%lf\n", x, y);
+  fprintf(filePtr, "%lf,%.15lf\n", x, y);
   return;
 }
 
 void output_data(int numPixels,
-                 double wavelengths[],
+                 double xVals[],
                  double pixelValues[],
                  double pn_interp_fft[],
                  int iteration,
@@ -25,12 +25,12 @@ g_print("Outputting data...\n");
   int i;
   // Get the information about which outputs / where they should go:
   struct dataOutputOpts *outputPtr = params->outputPtr;
-  const char *baseFname = outputPtr->fname;
+  const gchar *baseFname = outputPtr->fname;
   const gchar *data_dir = outputPtr->data_dir;
   gchar *basePath = g_strjoin("/", data_dir, baseFname, NULL);
   gchar headerLines[500];
   sprintf(headerLines,
-    "Data modulated at %d MHz with a PN code length of %d, and integrated for %d msec\nWavelength (nm), intensity\n",
+    "Data modulated at %d MHz with a PN code length of %d, and integrated for %d msec\nFrequency (Hz), intensity\n",
      params->mod_freq, params->pn_bit_length, params->integrationTime);
 g_print(baseFname);
 g_print("\n");
@@ -50,7 +50,7 @@ g_print("\n");
     outFile = fopen(fullPath, "w");
 
     for (i = 0; i < numPixels; i++) {
-      write_line(outFile, wavelengths[i], pixelValues[i]);
+      write_line(outFile, xVals[i], pixelValues[i]);
     }
 
     g_free(fullPath);
@@ -68,7 +68,7 @@ g_print("\n");
     fprintf(outFile, headerLines);
 
     for (i = 0; i < numPixels; i++) {
-      write_line(outFile, wavelengths[i], pn_interp_fft[i]);
+      write_line(outFile, xVals[i], pn_interp_fft[i]);
     }
 
     fclose(outFile);
@@ -89,11 +89,13 @@ g_print("\n");
 
     for (i = 0; i < numPixels; i++) {
       double value = pixelValues[i] * pn_interp_fft[i]; // point-wise multiplication
-      write_line(outFile, wavelengths[i], value);
+      write_line(outFile, xVals[i], value);
     }
     g_free(fullPath);
     g_free(fullURI);
     fclose(outFile);
   }
 
+  g_free(basePath);
+  return;
 }
