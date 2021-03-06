@@ -98,7 +98,7 @@ unsigned long int calc_fft_length(int pn_bit_len)
 }
 
 
-void generate_pn_fft(int mod_freq,
+void generate_pn_fft(int mod_freq, // in MHz
                      int pn_bit_len,
                      int pn_bits[1024],
                      unsigned long int fft_len, // Length of output arrays
