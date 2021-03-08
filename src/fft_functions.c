@@ -9,7 +9,7 @@
 #include "complex.h"
 #include "fftw3.h"
 
-const static int isamps_per_bit = 512; // Number of samples per bit in PN.
+const static unsigned long isamps_per_bit = 512; // Number of samples per bit in PN.
                                  // Keep as power of 2 to make FFT fast
                                  // Sort of arbitrary, but some testing in
                                  // MATLAB indicates this should be plenty
@@ -47,9 +47,11 @@ void interpolate_fft_data(int numPixels, // in spectrometer
                      // as a ratio of frequency difference / targetFreq
   lastFreq = 0.0;
 
-  fft_interp[0] = fft_pows[0]; // 0th element is always DC for both
+  //fft_interp[0] = fft_pows[0]; // 0th element is always DC for both
+  //targetFreq = spec_freqs0];
 
-  for (i = 1; i < numPixels; i++) { // Start at 1, as 0 is always DC
+
+  for (i = 0; i < numPixels; i++) { // Start at 1, as 0 is always DC
     targetFreq = spec_freqs[i];
     for (j = jStart; j < fft_length - 1; j++) {
       thisFreq = fft_freqs[j];
@@ -83,9 +85,10 @@ void interpolate_fft_data(int numPixels, // in spectrometer
         jStart = j;
         break;
       } /* if statement */
-
     } /* j for loop */
   } /* i for loop */
+
+  fclose(outfile);
 
 }
 
@@ -105,13 +108,14 @@ void generate_pn_fft(int mod_freq, // in MHz
                      double pn_fft_freq[], // Output
                      double pn_fft_pow[]) // Output
 {
-  int i,j;
+  int i;
+  unsigned long int j;
 
   double bit_duration = 1.0/((double ) mod_freq); // How long each bit is in microseconds
 
   double total_time = (double )pn_bit_len * bit_duration; // in us
 
-  unsigned long int itotal_samps = (unsigned long int )(pn_bit_len * isamps_per_bit);
+  unsigned long int itotal_samps = ((unsigned long int )pn_bit_len * isamps_per_bit);
 
   // High-resolution sampling of our PN code
   double *high_res_pn;
@@ -135,11 +139,14 @@ void generate_pn_fft(int mod_freq, // in MHz
   // Run the FFT:
   fftw_execute(p_r2c);
 
+  double speedC = 2.99792458e4; // In cm/usec
+
   // Get magnitudes and frequencies from the FFT:
   for (i = 0; i < fft_len; i++) {
     // Magnitude of each component:
-    pn_fft_pow[i] = cabs(pn_fft_out[i]);
-    pn_fft_freq[i] = (double )i / total_time; // Frequency in MHz
+    pn_fft_pow[i] = cabs(pn_fft_out[i])/(double )fft_len; // The division is to normalize
+    //pn_fft_freq[i] = (double )i / total_time; // Frequency in MHz
+    pn_fft_freq[i] = (((double )i / total_time))/speedC; // Frequency in cm^-1
   }
 
   // Free data:
