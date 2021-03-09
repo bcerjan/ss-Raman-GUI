@@ -13,7 +13,8 @@ void shutdown_spectrometer_api();
 void open_spectrometer(long spectrometerId);
 void close_spectrometer();
 void set_integration_time(int integrationTime);
-void get_spectrum(double values[]);
+void clear_spectrometer_buffer();
+int get_spectrum(double values[]);
 int count_spectrometer_pixels();
 void get_wavelengths(double wavelengths[]);
 

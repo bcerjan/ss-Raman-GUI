@@ -143,27 +143,28 @@ void set_integration_time(int integrationTime) // assumed to be in ms
 
   sbapi_spectrometer_set_integration_time_micros(currentDeviceId,
         currentSpecId, &error, usTime);
-  // We have to clear the buffer or we'll just return with whatever the previous
-  // integration time was
+
+  return;
+}
+
+void clear_spectrometer_buffer()
+{
+  int error = 0;
   sbapi_data_buffer_clear(currentDeviceId, currentBufferId, &error);
 
   return;
 }
 
-void get_spectrum(double values[])
+int get_spectrum(double values[])
 {
   int error = 0;
   int count = 0;
   count = sbapi_spectrometer_get_formatted_spectrum(currentDeviceId,
           currentSpecId, &error, values, numPixels);
-printf("Error = %d\n", error);
-printf("count = %d\n", count);
-printf("numpixels = %d\n", numPixels);
-printf("Inside get_spectrum, Vals[19] = %.8lf\n",values[19]);
-g_print(" ");
+
   do_edark_correction(values);
   do_nonlinearity_correction(values);
-  return;
+  return count; // Return actual number of pixels in spectrum, though this is unused
 }
 
 
