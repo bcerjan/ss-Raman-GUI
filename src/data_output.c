@@ -30,7 +30,7 @@ g_print("Outputting data...\n");
   gchar *basePath = g_strjoin("/", data_dir, baseFname, NULL);
   gchar headerLines[500];
   sprintf(headerLines,
-    "Data modulated at %d MHz with a PN code length of %d, and integrated for %d msec\nFrequency (Hz), intensity\n",
+    "Data modulated at %d MHz with a PN code length of %d, and integrated for %d msec\nWavenumber (cm^-1), intensity\n",
      params->mod_freq, params->pn_bit_length, params->integrationTime);
 g_print(baseFname);
 g_print("\n");
