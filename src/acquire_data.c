@@ -97,7 +97,7 @@ int data_acq(struct dataAcqParams *data)
   int mod_freq = params->mod_freq;
   int pn_bit_len = params->pn_bit_length;
 
-  double speedC = 2.99792458e17; // In nm/sec
+  double speedC = 2.99792458e10; // In cm/sec
   double *wavelengths, *frequencies, *values;
 
   // Set up initial data from the spectrometer:
@@ -114,7 +114,8 @@ int data_acq(struct dataAcqParams *data)
   for (i = 0; i < numPixels; i++) {
     // Assuming wavlengths are in nm:
     //frequencies[i] = speedC / wavelengths[numPixels - 1 - i]; // Need to reorder to be from 0 -> MaxFreq instead of the opposite
-    frequencies[i] = (speedC / LASER_WAVELENGTH) - (speedC / wavelengths[i]);
+    frequencies[i] = 1.0e7*((1.0 / LASER_WAVELENGTH) - (1.0 / wavelengths[i]));
+    // we multiply by 10^7 above to convert from nm to cm for wavenumbers
   }
 
 
@@ -122,7 +123,7 @@ int data_acq(struct dataAcqParams *data)
   unsigned long int fft_length;
   double *pn_fft_freq, *pn_fft_pow,*pn_interp_fft;
 
-  if (params->outputPtr->final_data) {
+  if (params->outputPtr->final_data || params->outputPtr->pn_fft_data) {
     fft_length = calc_fft_length(pn_bit_len);
     pn_fft_freq = g_malloc0(sizeof(*pn_fft_freq) * fft_length); // As long as our output
     pn_fft_pow = g_malloc0(sizeof(*pn_fft_pow) * fft_length); // ""
@@ -173,13 +174,13 @@ int data_acq(struct dataAcqParams *data)
 
   // Set the integration time for the measurements:
   set_integration_time(integrationTime);
+
 g_print("About to take spectra...\n");
   // Cycle for each measurement repetition:
   for (i = 0; i < measurement_reps; i++) {
     // Check if we've been cancelled:
     if (g_cancellable_is_cancelled(params->cancellable)) {
       g_source_remove(params->timeoutID); // Turn off update for progressbar
-      set_integration_time(15);
 
       // Free data that stays in this function:
       g_free(pn_interp_fft);
@@ -193,6 +194,11 @@ g_print("About to take spectra...\n");
       return 1; // Memory freeing function called automatically
     } /* if cancelled */
 
+    // Clear spectrometer data buffer -- otherwise we'll get the same spectrum
+    // for each repetition after the first as that will be the first "available"
+    // spectrum
+    clear_spectrometer_buffer();
+
     // Take data!
     get_spectrum(values); // This automatically applies corrections
                           // (e.g. dark pixels and nonlinearity)
@@ -205,13 +211,10 @@ g_print("About to take spectra...\n");
 
   } /* i for loop */
 
-  if (params->outputPtr->final_data) {
+  if (params->outputPtr->final_data || params->outputPtr->pn_fft_data) {
     g_free(pn_interp_fft); // Free if we allocated it
   }
 
-  // Set the integration time to something short so we're ready in case it
-  // is adjusted for the next run:
-  //wrapper.setIntegrationTime(spectrometerIndex, 10000); // set to 10 ms
   // If we reach here, we're done!
   gdk_threads_add_idle(complete_progressBar, params); // This also turns off the progress bar updates
 
