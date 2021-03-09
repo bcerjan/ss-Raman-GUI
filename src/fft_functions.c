@@ -88,8 +88,6 @@ void interpolate_fft_data(int numPixels, // in spectrometer
     } /* j for loop */
   } /* i for loop */
 
-  fclose(outfile);
-
 }
 
 unsigned long int calc_fft_length(int pn_bit_len)
