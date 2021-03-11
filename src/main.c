@@ -226,6 +226,10 @@ g_print("\n");
     duty_cycle = (float )gtk_adjustment_get_value(
       gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(uiWidgets->laser_power_entry));
 
+    if (duty_cycle > MAX_LASER_POWER) {
+      return; // don't let stuff happen if laser power set too high
+    }
+
     set_duty_cycle(serial_port, duty_cycle);
 
     g_free(serial_port);
