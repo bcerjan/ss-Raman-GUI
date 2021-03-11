@@ -39,6 +39,8 @@ typedef struct {
   GtkWidget *spectrometer_dialog;
   GtkWidget *progressBar;
   GtkWidget *scan_btn;
+  GtkWidget *serial_port_comboBox;
+  GtkWidget *laser_power_entry;
 } userInputWidgets; // Don't love using a typedef here...
                     // Seems to be required to use g_slice_new()
 
@@ -91,6 +93,29 @@ void spectrometer_scan_clicked_cb(GtkButton *self,
 {
   g_print("Spectrometer_scan clicked\n");
 
+  // First check for new serial devices:
+  gchar **port_list;
+  int port_list_len = 0;
+  port_list = get_port_list(&port_list_len);
+
+  // Clear previous list:
+  gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(uiWidgets->serial_port_comboBox));
+
+  // Then re-add our initial line:
+  gtk_combo_box_text_append(
+    GTK_COMBO_BOX_TEXT(uiWidgets->serial_port_comboBox), NULL,
+      "<Select Port>");
+
+  // Add available ports to list:
+  for (int i = 0; i < port_list_len; i++) {
+    gchar textBuf[100];
+    gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(uiWidgets->serial_port_comboBox), NULL, textBuf);
+  }
+
+  free_port_list(port_list);
+
+
+
   // First clear list if it already contains anything:
   gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(uiWidgets->spectrometer_comboBox));
 
@@ -100,7 +125,7 @@ void spectrometer_scan_clicked_cb(GtkButton *self,
       "<Please Select a Spectrometer>");
 
   gtk_combo_box_set_active(GTK_COMBO_BOX(uiWidgets->spectrometer_comboBox), 0);
-  
+
   // Scan for spectrometer(s)
   int numberOfSpectrometers,i;
   long *spectrometerIds;
@@ -110,9 +135,6 @@ void spectrometer_scan_clicked_cb(GtkButton *self,
   spectrometerIds = g_malloc0(numberOfSpectrometers * sizeof(spectrometerIds));
   numberOfSpectrometers = get_spectrometer_ids(spectrometerIds, numberOfSpectrometers);
 
-  if (numberOfSpectrometers < 0) {
-    // show a dialog or something
-  }
 
   // Add all spectrometers to the selection list:
   for (i = 0; i < numberOfSpectrometers; i++) {
@@ -123,6 +145,8 @@ void spectrometer_scan_clicked_cb(GtkButton *self,
     gtk_combo_box_text_append(
       GTK_COMBO_BOX_TEXT(uiWidgets->spectrometer_comboBox), id, nameBuf);
   }
+
+  g_free(spectrometerIds);
 }
 
 // Close error dialog when no spectrometers selected:
@@ -141,10 +165,11 @@ void scan_button_clicked_cb(GtkButton *button,
     // We are not currently running a scan
 
     //=======================================================
-    // first check to make sure this scan has a spectrometer selected
+    // first check to make sure this scan has a spectrometer and serial port selected:
     int spectrometerIndex;
 
-    spectrometerIndex = gtk_combo_box_get_active(GTK_COMBO_BOX(uiWidgets->spectrometer_comboBox)) - 1; // Offset by 1 to account for our note in the box
+    spectrometerIndex = gtk_combo_box_get_active(
+                            GTK_COMBO_BOX(uiWidgets->spectrometer_comboBox)) - 1; // Offset by 1 to account for our note in the box
     if (spectrometerIndex < 0) {
       gtk_widget_show(uiWidgets->spectrometer_dialog);
       return; // leave if we don't
@@ -157,6 +182,16 @@ void scan_button_clicked_cb(GtkButton *button,
 printf("Spec. ID is: %ld", spectrometerId);
 g_print("\n");
 
+    int serialPortIndex;
+    serialPortIndex = gtk_combo_box_get_active(
+                          GTK_COMBO_BOX(uiWidgets->serial_port_comboBox)) - 1;
+    if (serialPortIndex < 0) { // make sure we picked one of them
+      gtk_widget_show(uiWidgets->spectrometer_dialog);
+      return; // leave if we don't
+    }
+
+    const gchar *serial_port = gtk_combo_box_text_get_active_text(
+      GTK_COMBO_BOX_TEXT(uiWidgets->serial_port_comboBox));
 
     //========================================================
     // Initialize our cancellable object:
@@ -185,6 +220,15 @@ g_print("\n");
 
     //printf("Number of pn_repetitions = %d\n", pn_repetitions);
 
+    //==========================================================
+    // Set target laser power:
+    float duty_cycle;
+    duty_cycle = (float )gtk_adjustment_get_value(
+      gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(uiWidgets->laser_power_entry));
+
+    set_duty_cycle(serial_port, duty_cycle);
+
+    g_free(serial_port);
 
     //===========================================================
     // Get spectral acquisition parameters
@@ -314,6 +358,7 @@ int main(int    argc,
   // Prepare pointers to builder and window:
   GtkBuilder *builder;
   GtkWidget  *window, *dialog, *spectrometer_comboBox;
+  GtkAdjustment *laser_adjustment;
   userInputWidgets *uiWidgets = g_slice_new(userInputWidgets);
 
   // Load custom CSS:
@@ -340,6 +385,8 @@ int main(int    argc,
   // Text box to hold spectrometer info
   spectrometer_comboBox = GTK_WIDGET(gtk_builder_get_object(builder, "spectrometer_select"));
 
+  // GtkAdjustment that holds laser power:
+  laser_adjustment = GTK_WIDGET(gtk_builder_get_object(builder, "laser_power_adjust"));
 
   // All of the widgets that we need to read from later on:
 
@@ -356,6 +403,8 @@ int main(int    argc,
   uiWidgets->spectrometer_dialog = GTK_WIDGET(gtk_builder_get_object(builder, "spectrometer_dialog"));
   uiWidgets->progressBar = GTK_WIDGET(gtk_builder_get_object(builder, "scan_progress_bar"));
   uiWidgets->scan_btn = GTK_WIDGET(gtk_builder_get_object(builder, "scan_button"));
+  uiWidgets->serial_port_comboBox = GTK_WIDGET(gtk_builder_get_object(builder, "serial_port_select"));
+  uiWidgets->laser_power_entry = GTK_WIDGET(gtk_builder_get_object(builder, "laser_power"));
 
   // Put in default folder for data output:
   gtk_file_chooser_select_uri(GTK_FILE_CHOOSER(uiWidgets->data_dir_entry),
@@ -398,12 +447,36 @@ int main(int    argc,
     gtk_widget_show(dialog);
   }
 
+
+  //=======================================================
+  // Populate Serial Port List and limit laser power to value in
+  // measurement_params.h
+
+  gchar **port_list;
+  int port_list_len = 0;
+  port_list = get_port_list(&port_list_len);
+
+  if (port_list_len <= 0) {
+    // Show dialog maybe?
+  }
+
+  // Add available ports to list:
+  for (int i = 0; i < port_list_len; i++) {
+    gchar textBuf[100];
+    gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(uiWidgets->serial_port_comboBox), NULL, textBuf);
+  }
+
+  free_port_list(port_list);
+
+  // Set maximum laser power allowed:
+  gtk_adjustment_set_upper(laser_adjustment, MAX_LASER_POWER);
+
   //=======================================================
   // initialize spectrometer API:
   initialize_spectrometer_api();
 
   // Scan for spectrometer(s)
-  int numberOfSpectrometers,i;
+  int numberOfSpectrometers;
   long *spectrometerIds;
 
   numberOfSpectrometers = count_spectrometers();
@@ -411,12 +484,12 @@ int main(int    argc,
   spectrometerIds = g_malloc0(numberOfSpectrometers * sizeof(spectrometerIds));
   numberOfSpectrometers = get_spectrometer_ids(spectrometerIds, numberOfSpectrometers);
 
-  if (numberOfSpectrometers < 0) {
+  if (numberOfSpectrometers <= 0) {
     // show a dialog or something
   }
 
   // Add all spectrometers to the selection list:
-  for (i = 0; i < numberOfSpectrometers; i++) {
+  for (int i = 0; i < numberOfSpectrometers; i++) {
     gchar nameBuf[MAX_SPEC_NAME_LEN];
     gchar id[10];
     sprintf(id, "0x%02lx", spectrometerIds[i]);
