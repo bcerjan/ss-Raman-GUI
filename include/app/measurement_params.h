@@ -13,4 +13,15 @@ static const int pn_code_lengths[PN_CODE_LENGTH_OPTS] = {32, 64, 128, 256, 512, 
 // and waveform_gen.c to use the new values. This is only necessary if you add
 // or alter values, if you remove them it should still be fine.
 
+// Define parameters for the serial port controller here:
+// These are the defaults for the Arduino board we used (9600 8N1):
+#define SERIAL_BAUD_RATE 9600
+#define SERIAL_PARITY 0 // Same as SP_PARITY_NONE
+#define SERIAL_FLOW_CONTROL 0 // Same as SP_FLOWCONTROL_NONE
+#define SERIAL_BITS 8
+#define SERIAL_STOP_BITS 1
+#define MAX_LASER_POWER 100 // % of total power we ever will need
+
+
+
 #endif
