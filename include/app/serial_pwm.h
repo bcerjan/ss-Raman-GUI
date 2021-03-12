@@ -1,6 +1,6 @@
 #ifndef SERIAL_PWM
-#def SERIAL_PWM
+#define SERIAL_PWM
 
-void set_duty_cycle(gchar port_id, float percent);
+void set_duty_cycle(char *port_id, float percent);
 
 #endif

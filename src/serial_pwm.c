@@ -7,7 +7,7 @@
 #define MAX_URI_LENGTH 60
 #define SENDING_STR_LEN 15 // we use a float which has a maximum of 9, so leave some room
 
-void set_duty_cycle(gchar port_id, float percent)
+void set_duty_cycle(gchar *port_id, float percent)
 {
   // first, format port number into a URI in a platform-dependent way
   const gchar portURI[MAX_URI_LENGTH] = generate_port_uri(port_id);
