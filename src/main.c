@@ -1,3 +1,18 @@
+/**
+    Copyright (c) 2021 Ben Cerjan
+    This file is part of ss-Raman-GUI.
+    ss-Raman-GUI is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+    ss-Raman-GUI is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+    You should have received a copy of the GNU Affero General Public License
+    along with ss-Raman-GUI.  If not, see <https://www.gnu.org/licenses/>.
+**/
+
 // GTK for GUI generation
 #include <gtk/gtk.h>
 
@@ -6,9 +21,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-
-// Header files for Ocean Inisght Spectrometer
-//#include "api/seabreezeapi/SeaBreezeAPI.h"
 
 // Headers from this project:
 #include "data_output.h"
@@ -100,7 +112,7 @@ void spectrometer_scan_clicked_cb(GtkButton *self,
       "<Please Select a Spectrometer>");
 
   gtk_combo_box_set_active(GTK_COMBO_BOX(uiWidgets->spectrometer_comboBox), 0);
-  
+
   // Scan for spectrometer(s)
   int numberOfSpectrometers,i;
   long *spectrometerIds;

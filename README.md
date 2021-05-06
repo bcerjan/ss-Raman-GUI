@@ -11,7 +11,7 @@ Most of the controls should be self-explanatory, but for clarity:
 * PN Bit Length: How many bits should be used to generate the pseudorandom noise sequence? Generally more is better, but the improvement saturates
 * Integration Time: How long should the spectrometer acquire a spectrum for (in milliseconds)?
 * Modulation Frequency: How fast should the function generator adjust the laser power (in MHz)? Generally want this as fast as your function generator / electro-optic modulator can handle
-* File output options: 
+* File output options:
   * Raw Data saves the raw data from the spectrometer, generally useful for diagnosing the system and making sure things are working as expected
   * PN FFT Data is the Fourier Transform of the PN noise sequence, also generally useful for diagnosing issues with the system or with the code
   * Finalized Data is the point-wise multiplication of the above, and is generally the "actual" output from the measurement
@@ -26,7 +26,7 @@ The application is built using [GTK3](https://www.gtk.org/) for the UI and [FFTW
   1. Remove -Werror as there are some errors which can be safely ignored that I wasn't in a position to fix
   1. Modified the Mingw-32 block to link against the correct libraries: `-lusb, -lstdc++, -lwsock32, -lm` and the installed version of mingw64 `-L/path/to/msys64/ming64/lib`
   1. Added line `CFLAGS_BASE += -D _WINDOWS -D BUILD_DLL` to indicate that we are on Windows and are building the DLL
-1. Modify the root Makefile under `lib/libseabreeze.$(SUFFIX): initialize` to reorder some of the arguments as the order matters for `gcc/g++`: `$(CPP) lib/*.o $(LFLAGS_LIB) -o $@` 
+1. Modify the root Makefile under `lib/libseabreeze.$(SUFFIX): initialize` to reorder some of the arguments as the order matters for `gcc/g++`: `$(CPP) lib/*.o $(LFLAGS_LIB) -o $@`
 
 # Customization
-The code is designed to be relatively easy to adopt for a different combination of spectrometer (currently uses an Ocean Insight QE-Pro) and function generator (Wavepond DAx-14000). To do this, the code in `spectrometer_functions.c` and `waveform_gen.c` are the only places that should need to be changed to use a different API. As long as the replacement files provide the functions specified in `spectrometer_functions.h` and `waveform_gen.h` you can rewrite those files as needed.
+The code is designed to be relatively easy to adopt for a different combination of spectrometer (currently uses an Ocean Insight QE-Pro) and function generator (Wavepond DAx-14000). To do this, the code in `spectrometer_functions.c` and `waveform_gen.c` are the only places that should need to be changed to use a different API. As long as the replacement files provide the functions specified in `spectrometer_functions.h` and `waveform_gen.h` you can rewrite those files as needed. Additionally, the values in `measurement_params.h` will need to be adjusted for your specific system (particularly laser wavelength).
