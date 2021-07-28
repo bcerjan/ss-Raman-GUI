@@ -9,6 +9,9 @@
 // Header file containing pre-defined waveform data
 #include "pn_code.h"
 
+// Header file with experimental parameters
+#include "measurement_params.h"
+
 // Header files for the waveform generator ("wavepond")
 #include "dax22000_lib_DLL64.h"
 
@@ -26,15 +29,13 @@ unsigned long count_wvfm_gen()
   return NumCards;
 }
 
-void start_wvfm_gen(int pn_bit_len, int mod_freq)
+void start_wvfm_gen(int pn_bit_len /* Power of 2 */, int mod_freq /* MHz */)
 {
   int i,j,x;
   double actual_frequency, clk_rate;
   clk_rate = 2.0e9; // Set to 2 GHz clock rate. Note that mod_freq should be
                     // an even divisor of this number
   int isamps_per_bit = (int ) ceil( clk_rate / ((double) mod_freq * 1.0e6) ); // How many clock cycles long are our bits? (multiplication is to convert from MHz)
-  DWORD NumPoints = pn_bit_len * isamps_per_bit;// Length of our waveform before it loops
-                                                 // Needs to be modulo 16 (not an issue for us)
 
   WORD wvfm_array[1024] = {0}; // Array to hold our waveform values, may need to make larger buffer if we need to alter our clock rate
 
@@ -46,7 +47,13 @@ void start_wvfm_gen(int pn_bit_len, int mod_freq)
   // rate and just going from high to low (this is what is currently implemented)
 
   // Load our waveform array from the header file here:
-  if (pn_bit_len == 32) {
+  if (pn_bit_len == 0) {
+    // Test Sequence of alternating 0 and 1
+    for (i = 0; i < 32; i++ ) {
+      wvfm_array[i] = offset * (i % 2);
+    }
+    pn_bit_len = 32;
+  } else if (pn_bit_len == 32) {
     for (i = 0; i < pn_bit_len; i++) {
       wvfm_array[i] = pn_32_bit[i] * offset;
     }
@@ -70,11 +77,17 @@ void start_wvfm_gen(int pn_bit_len, int mod_freq)
     for (i = 0; i < pn_bit_len; i++) {
       wvfm_array[i] = pn_1024_bit[i] * offset;
     }
+  } else {
+    // Bad inputs
+    return;
   }
+
+  DWORD NumPoints = pn_bit_len * isamps_per_bit;// Length of our waveform before it loops
+                                                 // Needs to be modulo 16 (not an issue for us)
 
   // High-resolution sampling of our PN code
   DWORD *high_res_pn;
-  high_res_pn = g_malloc0(sizeof(*high_res_pn) * pn_bit_len * isamps_per_bit);
+  high_res_pn = g_malloc0(sizeof(*high_res_pn) * NumPoints);
 
   unsigned long int idx;
   for (i = 0; i < pn_bit_len; i++) {
@@ -91,7 +104,7 @@ void start_wvfm_gen(int pn_bit_len, int mod_freq)
   x = DAx22000_Open(CardNum);
   x = DAx22000_Initialize(CardNum);
 
-  actual_frequency = DAx22000_SetClkRate(CardNum, (double )mod_freq * 1e6); // Need to convert from MHz to Hz
+  actual_frequency = DAx22000_SetClkRate(CardNum, clk_rate); // Need to convert from MHz to Hz
 
   // Input our waveform:
   x = DAx22000_CreateSingleSegment(
