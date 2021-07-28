@@ -48,6 +48,7 @@ g_print("\n");
 
     FILE *outFile;
     outFile = fopen(fullPath, "w");
+    fprintf(outFile, headerLines);
 
     for (i = 0; i < numPixels; i++) {
       write_line(outFile, xVals[i], pixelValues[i]);
