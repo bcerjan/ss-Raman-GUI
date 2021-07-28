@@ -43,7 +43,7 @@ void interpolate_fft_data(int numPixels, // in spectrometer
 
   double targetFreq, lastFreq, thisFreq, nextFreq;
   double lastFreqDiff, thisFreqDiff, nextFreqDiff;
-  double tol = 0.05; // Tolerance for deciding that two frequencies are "equal"
+  double tol = 1e-4; // Tolerance for deciding that two frequencies are "equal"
                      // as a ratio of frequency difference / targetFreq
   lastFreq = 0.0;
 
@@ -59,6 +59,8 @@ void interpolate_fft_data(int numPixels, // in spectrometer
       if ( fabs(thisFreqDiff/targetFreq) < tol ) { // We're super close where we are, so just use that point
         jStart = j; // next time start farther along, as we're pre-sorted
         fft_interp[i] = fft_pows[j];
+    /*    printf("Found match at targetFreq = %f, thisFreq = %f, fft_pows[%lu] = %f\n"
+      , targetFreq, thisFreq, j, fft_pows[j]); */
         break; // we don't need to keep looping, we found the target.
       } /* if statement */
 
@@ -75,6 +77,9 @@ void interpolate_fft_data(int numPixels, // in spectrometer
                                 // so we use "this" and "last" for interpolation
           fft_interp[i] = interpolate_pts(targetFreq, thisFreq, lastFreq,
                                           fft_pows[j], fft_pows[j-1]);
+
+        /*  printf("Found close-enough at targetFreq = %f, thisFreq = %f, fft_pows[%lu] = %f, fft_interp[%i] = %f\n"
+          , targetFreq, thisFreq, j, fft_pows[j], i, fft_interp[i]); */
 
         } else { // means "next" > target > "this"
           fft_interp[i] = interpolate_pts(targetFreq, thisFreq, nextFreq,
@@ -144,7 +149,8 @@ void generate_pn_fft(int mod_freq, // in MHz
     // Magnitude of each component:
     pn_fft_pow[i] = cabs(pn_fft_out[i])/(double )fft_len; // The division is to normalize
     //pn_fft_freq[i] = (double )i / total_time; // Frequency in MHz
-    pn_fft_freq[i] = (((double )i / total_time))/speedC; // Frequency in cm^-1
+    pn_fft_freq[i] = 10000.0 * (((double )i / total_time))/speedC; // Frequency in cm^-1
+                    // 10000 is scaling factor so we don't need a gigantic FFT
   }
 
   // Free data:
