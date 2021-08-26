@@ -40,7 +40,7 @@ void start_wvfm_gen(int pn_bit_len /* Power of 2 */, int mod_freq /* MHz */)
   WORD wvfm_array[1024] = {0}; // Array to hold our waveform values, may need to make larger buffer if we need to alter our clock rate
 
   // LIKELY NEED TO ADJUST THIS OR ADD A 0 POSITION OFFSET (OR BOTH)
-  WORD offset = 2047; // Offset from "0" state to "1" state
+  WORD magnitude = WVFM_MAGNITUDE; // magnitude from "0" state to "1" state
 
   // Check if we need to have longer "bits" and a fictitious clock rate, or if
   // we can get away with setting the clock rate to be the actual user-desired
@@ -50,32 +50,32 @@ void start_wvfm_gen(int pn_bit_len /* Power of 2 */, int mod_freq /* MHz */)
   if (pn_bit_len == 0) {
     // Test Sequence of alternating 0 and 1
     for (i = 0; i < 32; i++ ) {
-      wvfm_array[i] = offset * (i % 2);
+      wvfm_array[i] = magnitude * (i % 2);
     }
     pn_bit_len = 32;
   } else if (pn_bit_len == 32) {
     for (i = 0; i < pn_bit_len; i++) {
-      wvfm_array[i] = pn_32_bit[i] * offset;
+      wvfm_array[i] = pn_32_bit[i] * magnitude;
     }
   } else if (pn_bit_len == 64) {
     for (i = 0; i < pn_bit_len; i++) {
-      wvfm_array[i] = pn_64_bit[i] * offset;
+      wvfm_array[i] = pn_64_bit[i] * magnitude;
     }
   } else if (pn_bit_len == 128) {
     for (i = 0; i < pn_bit_len; i++) {
-      wvfm_array[i] = pn_128_bit[i] * offset;
+      wvfm_array[i] = pn_128_bit[i] * magnitude;
     }
   } else if (pn_bit_len == 256) {
     for (i = 0; i < pn_bit_len; i++) {
-      wvfm_array[i] = pn_256_bit[i] * offset;
+      wvfm_array[i] = pn_256_bit[i] * magnitude;
     }
   } else if (pn_bit_len == 512) {
     for (i = 0; i < pn_bit_len; i++) {
-      wvfm_array[i] = pn_512_bit[i] * offset;
+      wvfm_array[i] = pn_512_bit[i] * magnitude;
     }
   } else if (pn_bit_len == 1024) {
     for (i = 0; i < pn_bit_len; i++) {
-      wvfm_array[i] = pn_1024_bit[i] * offset;
+      wvfm_array[i] = pn_1024_bit[i] * magnitude;
     }
   } else {
     // Bad inputs
